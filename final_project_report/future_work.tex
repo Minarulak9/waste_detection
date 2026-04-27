@@ -1,0 +1,89 @@
+\chapter{FUTURE WORK}
+
+\section{Introduction}
+
+While the current system achieves strong results for binary waste classification, several natural extensions would enhance its capability, coverage, and real-world impact. This chapter outlines the most promising directions for future development.
+
+\section{Multi-Category Waste Classification}
+
+The current system classifies waste into two categories (Bio / Non-Bio). Real-world waste management requires finer-grained segregation:
+\begin{itemize}
+    \item \textbf{Paper and Cardboard} (recyclable, separate processing from plastic)
+    \item \textbf{Glass} (requires dedicated recycling stream)
+    \item \textbf{Metal} (high-value recyclable)
+    \item \textbf{Plastic} (multiple sub-types: PET, HDPE, PVC)
+    \item \textbf{Electronic Waste} (hazardous, specialised disposal)
+    \item \textbf{Organic/Food Waste} (composting stream)
+\end{itemize}
+
+Extending to 6--10 categories would require: (i) a larger annotated dataset (at least 10,000 images per category), (ii) class-weighted training to handle natural class imbalance, and (iii) re-evaluation of the BiFPN configuration for the expanded label space.
+
+\section{Hardware Integration}
+
+The current system is software-only. Integration with physical bin actuation hardware represents the next step toward a complete automated segregation system:
+\begin{itemize}
+    \item \textbf{Servo-motor-actuated bin lids:} Detection output triggers the appropriate bin compartment to open.
+    \item \textbf{Conveyor belt control:} Classification signal redirects waste items on a sorting conveyor.
+    \item \textbf{Raspberry Pi / Jetson deployment:} Model compression (quantisation, pruning) to run inference on embedded hardware.
+    \item \textbf{Arduino integration:} PySerial communication from inference script to Arduino microcontroller for actuator control.
+\end{itemize}
+
+\section{Mobile Application}
+
+A mobile application would make the system accessible for household and institutional use without requiring a laptop:
+\begin{itemize}
+    \item \textbf{Android/iOS app:} Camera capture $\rightarrow$ on-device inference $\rightarrow$ classification result displayed.
+    \item \textbf{Model optimisation:} Export to ONNX or TensorFlow Lite for mobile runtime, applying quantisation (INT8) to reduce model size below 5\,MB.
+    \item \textbf{Offline capability:} On-device inference ensures operation without internet connectivity.
+\end{itemize}
+
+\section{Continual Learning}
+
+Static models degrade over time as new waste types emerge and visual distributions shift. A continual learning pipeline would:
+\begin{itemize}
+    \item Collect uncertain predictions (low-confidence detections) from deployed systems.
+    \item Queue them for human review and annotation.
+    \item Periodically retrain the model on the expanded dataset with new examples.
+    \item Deploy updated weights without requiring full retraining from scratch.
+\end{itemize}
+
+This approach maintains model accuracy over time without catastrophic forgetting of previously learned categories.
+
+\section{Fill Level and Route Optimisation Integration}
+
+The classification system can be integrated with fill-level monitoring and smart city logistics:
+\begin{itemize}
+    \item \textbf{Fill monitoring:} Ultrasonic or weight sensors track bin capacity for each waste category separately.
+    \item \textbf{Cloud dashboard:} Real-time bin status map with collection priority indicators.
+    \item \textbf{Route optimisation:} Collection routes dynamically adjusted based on which bins require emptying, reducing fuel consumption and collection frequency.
+\end{itemize}
+
+Research has shown that such systems can reduce collection route distances by up to 32\% \cite{iot_ai2024}, representing significant operational savings when fed by accurate classification.
+
+\section{Model Distillation for Edge Deployment}
+
+The current 9.4M parameter model, while compact, may be too large for microcontroller-class devices. Knowledge distillation can produce a smaller student model:
+\begin{itemize}
+    \item \textbf{Teacher model:} Current YOLO11s + BiFPN + WIoU (94.39\% mAP)
+    \item \textbf{Student model:} YOLO11n-scale with distilled feature representations
+    \item \textbf{Target:} $<$3M parameters, $<$5\,MB, maintaining $>$90\% mAP@0.5
+\end{itemize}
+
+\section{Dataset Expansion and Diversity}
+
+The current 3,000-image dataset, while sufficient for binary classification, could be expanded:
+\begin{itemize}
+    \item Increase to 10,000+ raw images for improved generalisation.
+    \item Include nighttime and low-light images for 24-hour deployment scenarios.
+    \item Add images from diverse geographic regions and cultural waste contexts.
+    \item Include wet, soiled, and degraded waste items that are challenging edge cases.
+\end{itemize}
+
+\section{Explainability and Transparency}
+
+For public-facing deployment, model explainability would increase user trust:
+\begin{itemize}
+    \item \textbf{Grad-CAM visualisation:} Heat maps showing which image regions influenced the classification decision.
+    \item \textbf{Confidence calibration:} Ensuring that reported confidence scores accurately reflect true classification probability.
+    \item \textbf{Uncertainty estimation:} Flagging low-confidence predictions for human review rather than automated action.
+\end{itemize}

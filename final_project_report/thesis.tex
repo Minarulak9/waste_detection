@@ -1,0 +1,328 @@
+\documentclass[BTech]{audiss}
+\usepackage{times}
+\usepackage{t1enc}
+\usepackage{url}
+\usepackage{color}
+\usepackage{graphicx}
+\usepackage{pdfpages}
+\usepackage{ifpdf}
+\ifpdf
+\usepackage[colorlinks=,linkcolor=blue,urlcolor=blue,citecolor=blue,plainpages=false,pdfpagelabels,breaklinks]{hyperref}
+\else
+\usepackage[colorlinks,linkcolor=blue,urlcolor=blue,citecolor=blue,plainpages=false,pdfpagelabels,linktocpage]{hyperref}
+\fi
+\usepackage{epstopdf}
+\usepackage{amsmath,amssymb}
+\usepackage{array}
+\usepackage{listings}
+\usepackage{xcolor}
+\usepackage{ragged2e}
+\usepackage{microtype}
+\usepackage{booktabs}
+\usepackage{multirow}
+\usepackage{float}
+\usepackage{subcaption}
+\sloppy
+
+\usepackage{titlesec}
+
+\titleformat{\chapter}[display]
+  {\fontsize{14}{16}\selectfont\bfseries\centering}
+  {\MakeUppercase{\chaptertitlename}\ \thechapter}
+  {20pt}
+  {\fontsize{14}{16}\selectfont\bfseries\MakeUppercase}
+
+\titleformat{name=\chapter,numberless}[display]
+  {\fontsize{14}{16}\selectfont\bfseries\centering}
+  {}
+  {0pt}
+  {\fontsize{14}{16}\selectfont\bfseries\MakeUppercase}
+
+\titleformat{\section}
+  {\fontsize{12}{14.4}\selectfont\bfseries}
+  {\thesection}
+  {1em}
+  {}
+
+\titleformat{\subsection}
+  {\fontsize{12}{14.4}\selectfont\bfseries}
+  {\thesubsection}
+  {1em}
+  {}
+
+\titleformat{\subsubsection}
+  {\fontsize{12}{14.4}\selectfont\bfseries}
+  {\thesubsubsection}
+  {1em}
+  {}
+
+\titlespacing*{\chapter}{0pt}{0pt}{20pt}
+\titlespacing*{\section}{0pt}{12pt}{6pt}
+\titlespacing*{\subsection}{0pt}{12pt}{6pt}
+\titlespacing*{\subsubsection}{0pt}{12pt}{6pt}
+
+\lstset{
+    basicstyle=\ttfamily\small,
+    breaklines=true,
+    frame=single,
+    keywordstyle=\color{blue},
+    stringstyle=\color{teal},
+    commentstyle=\color{gray},
+}
+
+\begin{document}
+
+% =====================================================================
+% TITLE PAGE
+% =====================================================================
+\begin{titlepage}
+\centering
+\vspace*{0.5cm}
+
+{\bfseries\large MAJOR PROJECT REPORT\\[0.6em]}
+{\normalfont\large On\\[0.8em]}
+{\LARGE\textbf{\textit{``Smart Waste Segregation System Using Deep Learning''}}}\\[1.5em]
+
+{\small Submitted in partial fulfilment of the requirements for the award of\\[0.6em]
+\textbf{Master of Computer Applications (MCA)\\[0.6em]
+In the department of\\[0.6em]
+\textbf{Computer Applications}}\\[2em]
+
+\vspace{0.5cm}
+\includegraphics[width=0.35\textwidth]{au.jpg}\\[1.5em]
+
+{\itshape Submitted by:}\\[0.6em]
+{\bfseries Minarul Hoque (PG/SOET/28/24/060)}\\[0.4em]
+{\bfseries Rohan Dey (PG/SOET/28/24/062)}\\[0.4em]
+{\bfseries Ritwik Ghosh (PG/SOET/28/24/004)}\\[0.4em]
+{\bfseries Raktim Kumar (PG/SOET/28/24/005)}\\[0.4em]
+{\bfseries Ataur Rahaman Din (PG/SOET/28/24/043)}\\[2.5em]
+
+{\itshape Under the Guidance of}\\[0.6em]
+{\bfseries Dr. Debdutta Pal}\\
+{(Associate Professor)}\\[1em]
+
+\vfill
+{\small \textbf{School of Engineering \& Technology}\\
+\textbf{ADAMAS University, Kolkata, West Bengal}\\
+JAN 2026 -- JUN 2026}}
+
+\end{titlepage}
+
+% =====================================================================
+% CERTIFICATE
+% =====================================================================
+\pagenumbering{roman}
+\setcounter{page}{1}
+
+\addcontentsline{toc}{chapter}{CERTIFICATE}
+\begin{center}
+{\Large \textbf{CERTIFICATE}}\\[1.5em]
+\end{center}
+
+\vspace{1em}
+\noindent
+This is to certify that the project report entitled \textit{``Smart Waste Segregation System Using Deep Learning''}, submitted to the School of Engineering \& Technology (SOET), \textbf{ADAMAS UNIVERSITY, KOLKATA} in partial fulfilment for the completion of the degree of \textbf{Master of Computer Applications} in the department of \textbf{Computer Applications}, is a record of bonafide work carried out by \textbf{Minarul Hoque (PG/SOET/28/24/060), Rohan Dey (PG/SOET/28/24/062), Ritwik Ghosh (PG/SOET/28/24/004), Raktim Kumar (PG/SOET/28/24/005), Ataur Rahaman Din (PG/SOET/28/24/043)} under our guidance.\\[1em]
+All help received from various sources has been duly acknowledged.\\
+No part of this report has been submitted elsewhere for the award of any other degree.\\[4em]
+
+\begin{center}
+\rule{8cm}{0.4pt}\\
+{\textbf{Dr. Debdutta Pal}}\\
+{(Associate Professor, Department of Computer Applications)}\\[3em]
+
+\rule{8cm}{0.4pt}\\
+{\textbf{Mr. Aninda Kundu / Mr. Sayantan Singha Roy}}\\
+{(Project Coordinator)}\\[3em]
+
+\rule{8cm}{0.4pt}\\
+{\textbf{Dr. Debasish Chakraborty}}\\
+{(HOD, Department of Computer Applications)}\\[2em]
+\end{center}
+
+\pagebreak
+
+% =====================================================================
+% ACKNOWLEDGEMENT
+% =====================================================================
+\addcontentsline{toc}{chapter}{ACKNOWLEDGEMENT}
+\begin{center}
+{\Large \textbf{ACKNOWLEDGEMENT}}\\[2em]
+\end{center}
+
+We, as the project team, sincerely thank our guide, \textbf{Dr. Debdutta Pal}, Associate Professor, Department of Computer Applications, Adamas University, for his continuous support, expert advice, and constructive suggestions throughout the development of this project. His invaluable guidance helped us navigate complex technical challenges and produce a rigorous, high-quality research outcome.
+
+We express our sincere gratitude to \textbf{Dr. Debasish Chakraborty}, Head of the Department of Computer Applications, for providing an excellent academic environment and the necessary resources to conduct this project successfully.
+
+We are thankful to the \textbf{School of Engineering \& Technology, Adamas University} for granting us access to the NVIDIA L40S GPU infrastructure, which made our deep learning experiments feasible.
+
+We also acknowledge \textbf{Roboflow} for providing the annotation and augmentation platform used in building our dataset, and \textbf{Ultralytics} for the open-source YOLO11 framework that served as the foundation of our work.
+
+Finally, we thank our families and fellow students for their constant encouragement and support throughout this journey.
+
+\pagebreak
+
+% =====================================================================
+% DECLARATION
+% =====================================================================
+\addcontentsline{toc}{chapter}{DECLARATION}
+\begin{center}
+{\Large \textbf{DECLARATION}}\\[2em]
+\end{center}
+
+\noindent
+We, the undersigned, declare that the project entitled \textit{``Smart Waste Segregation System Using Deep Learning''}, being submitted in partial fulfillment for the award of Master of Computer Applications, affiliated to ADAMAS University, is the work carried out by us. This project has not been submitted elsewhere for the award of any degree or diploma.\\[6em]
+
+\begin{center}
+\begin{tabular}{p{7cm} p{7cm}}
+\centering \rule{6cm}{0.4pt} \\[-0.3em]
+\centering \textbf{Minarul Hoque} \\ (PG/SOET/28/24/060) \\[2em]
+\centering \rule{6cm}{0.4pt} \\[-0.3em]
+\centering \textbf{Rohan Dey} \\ (PG/SOET/28/24/062) \\[2em]
+\centering \rule{6cm}{0.4pt} \\[-0.3em]
+\centering \textbf{Ritwik Ghosh} \\ (PG/SOET/28/24/004) \\[2em]
+\centering \rule{6cm}{0.4pt} \\[-0.3em]
+\centering \textbf{Raktim Kumar} \\ (PG/SOET/28/24/005) \\[2em]
+\centering \rule{6cm}{0.4pt} \\[-0.3em]
+\centering \textbf{Ataur Rahaman Din} \\ (PG/SOET/28/24/043) \\[2em]
+\end{tabular}
+\end{center}
+
+\pagebreak
+
+% =====================================================================
+% ABSTRACT
+% =====================================================================
+\abstract
+\vspace*{24pt}
+
+\noindent
+The global solid waste management crisis is worsening rapidly, with over 2.01 billion tonnes of municipal solid waste generated annually, yet source-level segregation remains critically low in most developing regions. Manual waste sorting is error-prone, inconsistent, and economically unsustainable. This project presents a \textbf{Smart Waste Segregation System} that automates the classification of waste into \textbf{Biodegradable (Bio)} and \textbf{Non-Biodegradable (Non-Bio)} categories using state-of-the-art deep learning object detection.
+
+The system is built upon an enhanced \textbf{YOLO11s} architecture augmented with a \textbf{Bidirectional Feature Pyramid Network (BiFPN)} neck for improved multi-scale feature fusion and a \textbf{Wise-IoU (WIoU)} loss function for geometrically robust bounding box regression. A custom dataset of 3,000 images was collected, manually annotated using the Roboflow platform, and expanded to \textbf{10,175 images} through systematic augmentation.
+
+Through a rigorous \textbf{eight-step ablation study}, we demonstrate that data augmentation contributes the largest single performance gain (+15.0\% mAP@0.5), while BiFPN provides meaningful multi-scale feature improvement. The final model achieves \textbf{94.39\% mAP@0.5} on the validation set and \textbf{85.46\% mAP@0.5} on the independent held-out test set, at an inference speed of \textbf{4.0\,ms per image} on an NVIDIA L40S GPU. A fully functional laptop-deployable demo application is provided for real-time waste detection via image upload or webcam.
+
+\noindent KEYWORDS: \hspace*{0.5em} \parbox[t]{4.4in}{Waste Classification, YOLO11, BiFPN, WIoU Loss, Object Detection, Deep Learning, Waste Segregation, Data Augmentation, Ablation Study, Real-Time Detection.}
+
+\pagebreak
+
+% =====================================================================
+% TABLE OF CONTENTS
+% =====================================================================
+\begin{singlespace}
+\tableofcontents
+\thispagestyle{empty}
+\end{singlespace}
+\listoftables
+\addcontentsline{toc}{chapter}{LIST OF TABLES}
+\listoffigures
+\addcontentsline{toc}{chapter}{LIST OF FIGURES}
+
+% =====================================================================
+% ABBREVIATIONS
+% =====================================================================
+\abbreviations
+\noindent
+\begin{tabbing}
+xxxxxxxxxxxx \= xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx \kill
+\textbf{AI}      \> Artificial Intelligence \\
+\textbf{API}     \> Application Programming Interface \\
+\textbf{AP}      \> Average Precision \\
+\textbf{BiFPN}   \> Bidirectional Feature Pyramid Network \\
+\textbf{CBAM}    \> Convolutional Block Attention Module \\
+\textbf{CNN}     \> Convolutional Neural Network \\
+\textbf{COCO}    \> Common Objects in Context \\
+\textbf{CPU}     \> Central Processing Unit \\
+\textbf{CUDA}    \> Compute Unified Device Architecture \\
+\textbf{CV}      \> Computer Vision \\
+\textbf{DL}      \> Deep Learning \\
+\textbf{FN}      \> False Negatives \\
+\textbf{FP}      \> False Positives \\
+\textbf{FPN}     \> Feature Pyramid Network \\
+\textbf{GFLOPs}  \> Giga Floating Point Operations Per Second \\
+\textbf{GPU}     \> Graphics Processing Unit \\
+\textbf{HOD}     \> Head of Department \\
+\textbf{HSV}     \> Hue, Saturation, Value (colour space) \\
+\textbf{IoU}     \> Intersection over Union \\
+\textbf{LR}      \> Learning Rate \\
+\textbf{mAP}     \> mean Average Precision \\
+\textbf{MCA}     \> Master of Computer Applications \\
+\textbf{ML}      \> Machine Learning \\
+\textbf{MSW}     \> Municipal Solid Waste \\
+\textbf{NMS}     \> Non-Maximum Suppression \\
+\textbf{ONNX}    \> Open Neural Network Exchange \\
+\textbf{P}       \> Precision \\
+\textbf{R}       \> Recall \\
+\textbf{RGB}     \> Red Green Blue \\
+\textbf{SOET}    \> School of Engineering and Technology \\
+\textbf{SSD}     \> Single Shot MultiBox Detector \\
+\textbf{TN}      \> True Negatives \\
+\textbf{TP}      \> True Positives \\
+\textbf{VRAM}    \> Video Random Access Memory \\
+\textbf{WIoU}    \> Wise Intersection over Union \\
+\textbf{YOLO}    \> You Only Look Once \\
+\end{tabbing}
+
+\pagebreak
+
+% =====================================================================
+% NOTATION
+% =====================================================================
+\chapter*{\centerline{NOTATION}}
+\addcontentsline{toc}{chapter}{NOTATION}
+
+\begin{singlespace}
+\begin{tabbing}
+xxxxxxxxxxxx \= xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx \kill
+\textbf{$P$}              \> Precision: $TP / (TP + FP)$ \\
+\textbf{$R$}              \> Recall: $TP / (TP + FN)$ \\
+\textbf{$F_1$}            \> F1-Score: $2PR / (P + R)$ \\
+\textbf{$\text{AP}$}      \> Area under Precision-Recall curve for one class \\
+\textbf{$\text{mAP}$}     \> Mean Average Precision across all classes \\
+\textbf{$\text{IoU}$}     \> Intersection over Union between predicted and ground-truth box \\
+\textbf{$w_i$}            \> Learnable BiFPN fusion weight for feature level $i$ \\
+\textbf{$\varepsilon$}    \> Small constant ($10^{-4}$) for numerical stability \\
+\textbf{$\mathcal{O}$}    \> BiFPN output feature map after weighted fusion \\
+\textbf{$I_i$}            \> Input feature map at level $i$ \\
+\textbf{$\mathcal{L}$}    \> Total training loss function \\
+\textbf{$\mathcal{L}_{\text{WIoU}}$} \> Wise-IoU bounding box regression loss \\
+\textbf{$r$}              \> WIoU dynamic focusing coefficient \\
+\textbf{$lr_0$}           \> Initial learning rate \\
+\textbf{$lr_f$}           \> Final learning rate after cosine annealing \\
+\textbf{$B$}              \> Batch size \\
+\textbf{$E$}              \> Number of training epochs \\
+\textbf{$P3, P4, P5$}     \> Feature pyramid levels at strides 8, 16, 32 \\
+\textbf{$n$}              \> Number of images in dataset split \\
+\textbf{$C$}              \> Number of classes (2: Bio, Non-Bio) \\
+\end{tabbing}
+\end{singlespace}
+
+\pagebreak
+\clearpage
+\pagenumbering{arabic}
+
+% =====================================================================
+% CHAPTERS
+% =====================================================================
+\input{introduction}
+\input{literature_review}
+\input{technology}
+\input{system_design}
+\input{methodology}
+\input{implementation}
+\input{result_and_analysis}
+\input{conclusion}
+\input{future_work}
+
+% =====================================================================
+% REFERENCES
+% =====================================================================
+\begin{singlespace}
+\nocite{*}
+\bibliographystyle{IEEEtran}
+\bibliography{refs}
+\addcontentsline{toc}{chapter}{REFERENCES}
+\end{singlespace}
+
+\end{document}

@@ -1,0 +1,234 @@
+\chapter{METHODOLOGY}
+
+\section{Introduction}
+
+This chapter details the end-to-end methodology followed in the development of the Smart Waste Segregation System, from raw data collection through model architecture design, training strategy, and evaluation framework. Each decision is grounded in empirical evidence from the ablation study.
+
+\section{Dataset Construction}
+
+\subsection{Image Collection}
+
+The dataset was built from scratch by the project team. A total of \textbf{3,000 raw images} were collected through two complementary methods:
+
+\begin{enumerate}
+    \item \textbf{Direct Photography (approximately 40\%):} Team members photographed real waste items in diverse settings — kitchen waste bins, outdoor rubbish points, laboratory disposal areas, and institutional canteen waste zones. Images were captured using mobile phone cameras under varying lighting conditions (natural daylight, indoor fluorescent, low-light) and angles (overhead, side-on, close-up).
+
+    \item \textbf{Internet Collection (approximately 60\%):} Additional images were sourced from open image repositories to expand diversity of waste item types, backgrounds, and presentation styles. Images were selected to represent real-world scenarios rather than studio or isolated item photographs.
+\end{enumerate}
+
+The collection strategy deliberately sought:
+\begin{itemize}
+    \item Mixed and co-mingled waste scenarios (multiple items per image)
+    \item Varied backgrounds (soil, concrete, floor, bin interior)
+    \item Different degrees of occlusion and clutter
+    \item Both fresh and used/degraded waste items
+\end{itemize}
+
+\subsection{Data Annotation}
+
+All 3,000 images were manually annotated using the \textbf{Roboflow annotation platform}. Each annotation consists of an axis-aligned bounding box drawn tightly around each visible waste item, with the class label assigned as either \textit{Bio} or \textit{Non-Bio}.
+
+Annotation quality measures applied:
+\begin{itemize}
+    \item \textbf{Consistency guidelines:} All team members followed agreed annotation conventions (minimum visible area, ambiguous item handling).
+    \item \textbf{Cross-checking:} Annotations were reviewed for bounding box accuracy before augmentation.
+\end{itemize}
+
+\subsubsection{Annotation Pre-processing and Label Fixing}
+
+During the annotation process, a subset of images — particularly those sourced from the internet — were inadvertently annotated using Roboflow's polygon (segmentation) tool rather than the rectangle (bounding box) tool. This produced \textbf{272 label files} in segmentation format, where each annotation line contained a class identifier followed by a variable-length sequence of $(x, y)$ coordinate pairs tracing the object outline — incompatible with the 5-field YOLO bounding box format (\texttt{class cx cy w h}).
+
+\textbf{Why this required fixing:} YOLO's data loader strictly expects each annotation line to contain exactly five normalised values (class, centre-x, centre-y, width, height). Label files with more than five fields per line are either silently rejected or cause training errors, meaning any polygon-format labels would simply not participate in training — effectively reducing the usable dataset size without any visible warning.
+
+\textbf{How the fix was applied:} For each polygon annotation, all $x$-coordinates and all $y$-coordinates in the sequence were extracted separately. The tightest axis-aligned bounding box enclosing the polygon was then derived by computing:
+\begin{equation}
+c_x = \frac{\min(x) + \max(x)}{2}, \quad
+c_y = \frac{\min(y) + \max(y)}{2}, \quad
+w   = \max(x) - \min(x), \quad
+h   = \max(y) - \min(y)
+\end{equation}
+All coordinates were already normalised to $[0, 1]$ by Roboflow, so the derived bounding box values are directly usable by YOLO without further scaling. This conversion is lossless in the detection sense: the resulting box is the smallest rectangle that fully contains the annotated polygon, preserving the complete object region.
+
+\textbf{Duplicate removal:} In addition, annotation files were scanned for duplicate lines — identical annotation entries that can arise when an image is re-exported or re-annotated. \textbf{One duplicate image} was identified and removed entirely; within-file duplicate annotation lines were also deduplicated to prevent any object instance being double-counted during loss computation.
+
+After applying these fixes, all 3,000 images had clean, consistent 5-field YOLO-format labels, and the dataset was ready for split and augmentation.
+
+\subsection{Data Augmentation Strategy}
+
+Raw annotation of 3,000 images is insufficient for training a robust deep learning model. A structured augmentation pipeline was applied via \textbf{Roboflow v2} \textbf{exclusively to the training split after the dataset was divided}, expanding the training set from 2,387 unique source images to \textbf{9,576 images} (average $\times$4.01 augmentation factor per source image).
+
+\textbf{Split-then-augment order (no data leakage):} The 3,000 annotated images were first divided into train, validation, and test splits (approximately 2,387 / 300 / 299 raw source images). Augmentation was then applied only to the training portion. Validation and test splits contain only the original, unaugmented source images resized to $640\times640$ pixels. Analysis of the exported dataset confirmed:
+\begin{itemize}
+    \item \textbf{Test set:} Zero source-image overlap with training — fully unseen data.
+    \item \textbf{Validation set:} 3 source images (1.0\%) whose augmented variants also appear in training. These are distinct file exports with different augmentation transforms (confirmed by differing file sizes and pixel content) and do not constitute meaningful data leakage.
+\end{itemize}
+This split-then-augment procedure ensures that validation and test metrics reflect genuine generalisation to unseen images.
+
+\begin{table}[H]
+\centering
+\caption{Augmentation Pipeline Parameters}
+\label{tab:augmentation}
+\resizebox{\textwidth}{!}{%
+\begin{tabular}{lll}
+\toprule
+\textbf{Augmentation Type} & \textbf{Parameter}       & \textbf{Rationale} \\
+\midrule
+Horizontal Flip            & 50\% probability         & Waste items appear from either orientation \\
+Random Rotation            & $\pm 15^{\circ}$         & Simulates tilted camera or angled waste \\
+Brightness Jitter          & $\pm 20\%$               & Handles varying illumination conditions \\
+Exposure Jitter            & $\pm 15\%$               & Simulates different camera exposure settings \\
+Mosaic                     & Enabled                  & Combines four images for multi-scale training \\
+Auto-orientation           & Enabled                  & Corrects EXIF rotation metadata automatically \\
+Resize                     & $640 \times 640$ pixels  & Standard YOLO input resolution \\
+\bottomrule
+\end{tabular}}
+\end{table}
+
+Additionally, during YOLO11 training, the Ultralytics augmentation pipeline applied further online augmentation including HSV colour space jitter, additional random flipping, and copy-paste augmentation, further increasing training diversity.
+
+\section{Model Architecture Design}
+
+\subsection{Design Rationale}
+
+The model architecture was designed through a systematic, evidence-based process rather than selecting a single complex architecture upfront. The approach follows a \textit{start simple, add complexity only where beneficial} philosophy, validated through the ablation study.
+
+\subsection{Backbone: YOLO11s}
+
+YOLO11s was selected as the backbone based on three criteria:
+\begin{enumerate}
+    \item \textbf{Recall superiority:} YOLO11s demonstrated 7.3\% higher recall than YOLO11n at 50 epochs without augmentation.
+    \item \textbf{Parameter efficiency:} 9.4M parameters provides sufficient capacity for the binary classification task without excessive overfitting risk.
+    \item \textbf{Pretrained initialisation:} COCO-pretrained weights enable effective transfer learning, significantly accelerating convergence on our waste dataset.
+\end{enumerate}
+
+The backbone's C3k2 blocks provide efficient feature extraction across five spatial resolution stages, producing feature maps P3 (stride 8), P4 (stride 16), and P5 (stride 32) for neck processing.
+
+\subsection{Neck: Bidirectional Feature Pyramid Network (BiFPN)}
+
+The standard YOLO neck was replaced with a BiFPN configuration. The rationale for BiFPN stems from the multi-scale nature of waste objects:
+\begin{itemize}
+    \item Small waste items (bottle caps, wrappers) are best detected in high-resolution P3 features.
+    \item Large waste items (bags, containers) require the wider receptive field of P5 features.
+    \item Standard FPN fuses top-down only, losing fine-grained bottom-up context.
+    \item BiFPN's bidirectional fusion allows both scales to inform each other iteratively.
+\end{itemize}
+
+Our BiFPN configuration uses 256 channels and 2 fusion iterations, with learnable weights normalised via ReLU to ensure non-negative contributions.
+
+\subsection{Detection Head: Anchor-Free with WIoU v3 Loss}
+
+YOLO11 uses an anchor-free detection head, eliminating the need to define anchor box priors — which would require domain-specific tuning for waste item aspect ratios. \textbf{Wise-IoU v3 (WIoU v3)} loss \cite{wiou2023} was integrated at the bounding box regression stage.
+
+WIoU v3 is the dynamic-focusing variant of the WIoU family. It assigns each prediction a per-example weight $\beta$ based on how its IoU compares to the batch mean IoU:
+\begin{equation}
+\mathcal{L}_{\text{WIoU}} = \beta \cdot \mathcal{L}_{\text{IoU}}, \qquad
+\beta = \left(\frac{\text{IoU}_i}{\overline{\text{IoU}}}\right)^{\!4}
+\end{equation}
+Predictions with IoU below the batch mean (hard, geometrically irregular boxes) receive a lower $\beta$, which reduces their gradient contribution and prevents the loss from being dominated by easy, already well-aligned predictions. This is the key distinction from WIoU v1 (no focusing) and v2 (static coefficient): v3's coefficient adapts continuously to the training state. In our implementation, IoU values are clamped to $[0.01, 1.0]$ and $\beta$ to $[0.1, 10.0]$ for numerical stability during early training, when IoU values can be near zero. For waste objects with irregular, partially occluded shapes, this dynamic focusing mechanism provides more informative gradient signals than standard IoU-based losses.
+
+\section{Training Strategy}
+
+\subsection{Transfer Learning Approach}
+
+Rather than training from random initialisation, the model was initialised from COCO pretrained YOLO11s weights (\texttt{yolo11s.pt}). Transfer learning provides:
+\begin{itemize}
+    \item Faster convergence (strong feature extractors already learned)
+    \item Better generalisation with limited data
+    \item Reduced risk of local minima
+\end{itemize}
+
+\subsection{Optimiser and Learning Rate Schedule}
+
+\textbf{AdamW} (Adaptive Moment Estimation with Weight Decay) was selected as the optimiser. AdamW decouples weight decay from the gradient update, providing better regularisation than standard Adam.
+
+The learning rate schedule uses \textbf{cosine annealing}: starting at $lr_0 = 0.01$, decaying smoothly to $lr_f = 0.001$ over 100 epochs. This avoids abrupt learning rate drops and allows fine-grained weight adjustment in later epochs. A 3-epoch warmup phase linearly ramps the learning rate from near-zero to $lr_0$, stabilising early training.
+
+\subsection{Final Training Configuration}
+
+\begin{table}[H]
+\centering
+\caption{Final Model Training Configuration}
+\label{tab:train_config}
+\begin{tabular}{ll}
+\toprule
+\textbf{Parameter} & \textbf{Value} \\
+\midrule
+Base Model          & YOLO11s (COCO pretrained) \\
+Epochs              & 100 \\
+Batch Size          & 32 \\
+Image Size          & $640 \times 640$ pixels \\
+Optimizer           & AdamW \\
+Initial LR ($lr_0$) & 0.01 \\
+Final LR ($lr_f$)   & 0.001 \\
+LR Schedule         & Cosine Annealing \\
+Warmup Epochs       & 3 \\
+Weight Decay        & 0.0005 \\
+Patience (early stop) & 15 epochs \\
+Neck                & BiFPN (256 channels, 2 iterations) \\
+Loss (bbox)         & WIoU \\
+Save Period         & Every 10 epochs \\
+GPU                 & NVIDIA L40S (46 GB VRAM) \\
+Training Time       & 3.102 hours \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\section{Ablation Study Design}
+
+The ablation study was designed to answer the question: \textit{``Which architectural component contributes most to performance improvement, and are all components necessary?''}
+
+Six configurations were trained under identical conditions (same dataset, same evaluation protocol), with components added incrementally:
+
+\begin{table}[H]
+\centering
+\caption{Ablation Study Experimental Configurations}
+\label{tab:ablation_design}
+\resizebox{\textwidth}{!}{%
+\begin{tabular}{clp{9cm}}
+\toprule
+\textbf{Step} & \textbf{Configuration} & \textbf{What is being tested} \\
+\midrule
+1 & YOLO11n, no augmentation & Baseline nano model \\
+2 & YOLO11s, no augmentation & Effect of model size \\
+3 & YOLO11s + Augmentation & \textbf{Effect of data augmentation} \\
+4 & + CBAM + WIoU & Effect of attention + loss function \\
+5 & + BiFPN & \textbf{Effect of bidirectional feature fusion} \\
+6 & + Deformable Convolutions & Effect of spatial adaptivity \\
+\midrule
+7 (Final) & YOLO11s + BiFPN + WIoU, 100 ep & \textbf{Best config at full training} \\
+\bottomrule
+\end{tabular}}
+\end{table}
+
+Steps 1--6 all used 50 epochs for fair comparison. The final model (Step 7) used 100 epochs to validate the benefit of extended training for the best-performing configuration.
+
+\section{Evaluation Metrics}
+
+All models are evaluated using the following standard COCO object detection metrics:
+
+\subsection{Precision}
+\begin{equation}
+P = \frac{TP}{TP + FP}
+\end{equation}
+Fraction of detections that are correct. High precision means few false alarms.
+
+\subsection{Recall}
+\begin{equation}
+R = \frac{TP}{TP + FN}
+\end{equation}
+Fraction of ground-truth instances detected. High recall means few missed detections.
+
+\subsection{Average Precision (AP)}
+The area under the Precision-Recall curve for a single class, computed across confidence thresholds from 0 to 1.
+
+\subsection{Mean Average Precision}
+\begin{equation}
+\text{mAP@0.5} = \frac{1}{C}\sum_{c=1}^{C} \text{AP}_c \Big|_{\text{IoU}=0.5}
+\end{equation}
+Mean AP across all $C$ classes at IoU threshold 0.5. This is the primary evaluation metric.
+
+\subsection{mAP@0.5:0.95}
+Mean AP averaged over IoU thresholds from 0.50 to 0.95 at step 0.05, providing a stricter evaluation of localisation quality.
+
+\subsection{Inference Speed}
+Average time in milliseconds to process one image through the complete pipeline (preprocessing + inference + postprocessing). Measured on the NVIDIA L40S GPU.

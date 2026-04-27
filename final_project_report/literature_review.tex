@@ -1,0 +1,95 @@
+\chapter{LITERATURE REVIEW}
+
+\section{Introduction}
+
+This chapter reviews existing literature on automated waste classification, object detection architectures, and smart waste management systems. The review covers ten significant works that have shaped the research landscape and identifies the specific gaps this project addresses. The papers are organised by thematic area: early deep learning approaches, hardware-integrated classification systems, YOLO-based detection methods, feature pyramid enhancements, and systematic reviews.
+
+\section{Review of Existing Works}
+
+\subsection{Auto Classification of Biodegradable and Non-Biodegradable Objects (2017)}
+
+One of the earliest works addressing binary waste classification using machine vision \cite{autoclassify2017} established the foundational framework for automated biodegradable versus non-biodegradable segregation. The authors employed a CNN-based classifier trained on a relatively small dataset of controlled laboratory images. While the system demonstrated proof-of-concept viability, it was limited by: (i) low dataset diversity with single-item images under controlled lighting, (ii) static background conditions that would not generalise to real-world cluttered environments, and (iii) a classification-only approach without spatial localisation of waste items. This work remains a key reference as it defined the binary classification problem that subsequent works, including this project, seek to solve at higher accuracy and real-world applicability.
+
+\subsection{Deep Learning Based Waste Segregation Using SSD and MobileNet (2021)}
+
+This work \cite{ssd_mobilenet2021} deployed a Single Shot MultiBox Detector (SSD) combined with a MobileNet backbone on a Raspberry Pi for real-time embedded waste detection. The lightweight MobileNet backbone was chosen to meet the computational constraints of the Raspberry Pi platform. The system demonstrated practical latency for bin-side deployment, achieving approximately 5--8 frames per second on the embedded device. Key limitations include: classification accuracy not exceeding 82\% mAP due to the lightweight architecture's limited feature extraction capacity, sensitivity to partial occlusion, and performance degradation under varying lighting conditions. This work highlights the critical trade-off between model accuracy and hardware compatibility, a challenge this project addresses by optimising for accuracy with flexible deployment targets.
+
+\subsection{ConvoWaste: Machine Learning Based Waste Classification (2023)}
+
+ConvoWaste \cite{convowaste2023} presented an end-to-end automated waste segregation system combining a deep CNN classifier with servo-motor-actuated bin control and ultrasonic fill-level sensors. The system was designed for multi-category classification (up to six waste types) with physical bin actuation triggered by the classification output. The CNN achieved approximately 89\% classification accuracy on a controlled test set. While representing a significant step toward complete automation, limitations include: dependency on a fixed-angle overhead camera, inability to detect multiple waste items simultaneously (single-item classification, not detection), and hardware dependency making the system costly to deploy at scale. This project draws inspiration from the end-to-end automation concept while focusing on improving the core classification accuracy through modern object detection.
+
+\subsection{Smart Waste Management with IoT and Artificial Intelligence (2024)}
+
+This work \cite{iot_ai2024} integrated VGG-16 and ResNet architectures with IoT infrastructure for smart waste bin management, using the publicly available TrashNet dataset. The study compared multiple CNN architectures and found ResNet-50 achieving 91.4\% accuracy on the six-category TrashNet classification task. The IoT integration included cloud-based logging, route optimisation triggers, and web dashboard monitoring. Limitations of this work are: reliance on the TrashNet dataset which contains single clean-background images not representative of real collection environments, and the use of classification-only models without bounding box prediction, making the system unsuitable for multi-item scenarios. Our work extends this by using a detection-based approach (YOLO) trained on diverse real-world imagery.
+
+\subsection{Waste Detection Using Data Augmentation and YOLO\_EC (PMC)}
+
+YOLO\_EC \cite{yolo_ec} modified the standard YOLO architecture with enhanced convolution (EC) modules and demonstrated that systematic data augmentation is critical for waste detection performance. The study specifically showed that without augmentation, the YOLO baseline achieved only moderate mAP, while applying mosaic augmentation, random cropping, and colour jitter resulted in substantial improvements (up to +18\% mAP in their study). This finding directly motivates our focus on augmentation strategy as the primary performance lever, a hypothesis confirmed by our ablation study (Step 2$\to$3: +15.0\% mAP improvement). The work validates data-centric approaches as complementary to architectural innovations.
+
+\subsection{EcoDetect-YOLO: Lightweight Real-Time Waste Detection}
+
+EcoDetect-YOLO \cite{ecodetect} introduced a pruned and quantised YOLO variant targeting deployment on low-power edge devices such as smartphones and embedded processors. The model achieves competitive mAP (approximately 87\% on their test set) while reducing parameter count by approximately 40\% compared to standard YOLOv5s. The key contribution is a systematic model compression pipeline. However, the accuracy gap compared to full-precision models remains a concern for applications requiring high precision, and the dataset used is limited in biodegradable versus non-biodegradable diversity. Our work prioritises maximising accuracy on the classification task, treating deployment efficiency as a secondary concern addressed through future model distillation.
+
+\subsection{A Systematic Review of AI-Based Techniques for Solid Waste Management (2025)}
+
+This comprehensive meta-analysis \cite{systematic_review2025} reviewed 97 studies published between 2015 and 2024 on AI applications in solid waste management. Key findings from the review include: (i) deep learning methods consistently outperform traditional ML approaches by 15--25\% in classification tasks, (ii) YOLO-family detectors dominate real-time deployment scenarios, (iii) dataset size and quality are consistently identified as the primary bottlenecks, and (iv) binary (bio/non-bio) classification remains the most practically deployable categorisation scheme for general-purpose bins. The review explicitly identifies the absence of systematic ablation studies as a gap, noting that most works propose architectural modifications without isolating their individual contributions. Our eight-step ablation study directly addresses this identified gap.
+
+\subsection{Waste Management 2.0: IoT with LoRaWAN (2024)}
+
+This work \cite{iot_ai2024} proposed a large-scale smart waste management infrastructure integrating IoT sensors, LoRaWAN long-range communication, fill-level monitoring, and AI-based route optimisation. The system demonstrated significant operational improvements: 32\% reduction in collection route distances and 29\% reduction in fuel consumption across a pilot urban deployment. While this work does not focus on waste classification accuracy (it assumes pre-sorted waste bins), it demonstrates the downstream value that accurate classification systems like ours can provide. A classification system achieving 94\% accuracy feeding into such route optimisation infrastructure would significantly improve overall system effectiveness.
+
+\subsection{IoT-Enabled Biodegradable Waste Monitoring (2025)}
+
+This paper \cite{systematic_review2025} presented a sensor-fusion approach using ultrasonic sensors, load cells, and moisture and gas sensors mounted on a NodeMCU microcontroller for biodegradable waste monitoring. The system tracks decomposition progress and bin fill levels in real time, triggering collection and processing alerts. While the sensor-based approach provides complementary information to camera-based classification, it cannot identify waste type at collection time. This work highlights the broader smart waste ecosystem that camera-based classification systems like ours can integrate with.
+
+\subsection{Survey of Smart Dustbin Systems (2024)}
+
+A Springer-published survey \cite{springer_survey2024} analysed 45 smart dustbin implementations across sensor technologies, communication protocols, and AI architectures. The survey categorised systems into passive (sensor-only), semi-intelligent (threshold-based), and fully intelligent (AI-driven) tiers. Key conclusions include: camera-based AI classification provides the highest accuracy but requires the most computational resources; deep learning models are preferred over traditional CV for unstructured waste; and real-time performance is achievable with modern YOLO architectures. The survey recommends YOLOv8+ as the current state-of-the-art choice for new implementations — a recommendation our project extends by evaluating YOLO11 with BiFPN enhancements.
+
+\section{Summary and Research Gaps}
+
+Table~\ref{tab:lit_review} provides a consolidated summary of the reviewed works.
+
+\begin{table}[H]
+\centering
+\caption{Comparative Summary of Reviewed Literature}
+\label{tab:lit_review}
+\renewcommand{\arraystretch}{1.1}
+\resizebox{\textwidth}{!}{%
+\begin{tabular}{llllcll}
+\toprule
+\textbf{Work} & \textbf{Year} & \textbf{Dataset} & \textbf{Task} & \textbf{Classes} & \textbf{Best Result} & \textbf{Key Limitation} \\
+\midrule
+Auto Classification~\cite{autoclassify2017}    & 2016 & Custom (lab)         & Classification & 2      & Proof-of-concept      & Single-item; controlled background; no localisation \\
+SSD + MobileNet~\cite{ssd_mobilenet2021}       & 2021 & Custom               & Detection      & 2      & $\sim$82\% mAP        & Low accuracy; embedded-only deployment \\
+ConvoWaste~\cite{convowaste2023}               & 2023 & Custom               & Classification & Multi  & $\sim$89\% accuracy   & Single-item only; no bounding box prediction \\
+IoT + VGG/ResNet~\cite{iot_ai2024}            & 2025 & TrashNet             & Classification & 6      & 91.4\% accuracy       & Clean backgrounds; no spatial localisation \\
+YOLO\_EC~\cite{yolo_ec}                        & 2023 & HPU\_WASTE           & Detection      & Multi  & 96.4\% mAP@0.5        & No systematic ablation study \\
+EcoDetect-YOLO~\cite{ecodetect}               & 2024 & Custom domestic      & Detection      & Multi  & $\sim$87\% mAP        & Accuracy vs.\ efficiency trade-off \\
+Systematic Review~\cite{systematic_review2025} & 2025 & 97 studies           & Review         & ---    & ---                   & Review only; no new system proposed \\
+Waste Management 2.0~\cite{iot_ai2024}         & 2024 & Urban pilot          & IoT / Routing  & ---    & 32\% route reduction  & No image classification component \\
+Sensor Fusion (JETIR)                          & 2025 & IoT sensors          & Monitoring     & ---    & Fill-level alerts     & Cannot identify waste type visually \\
+Smart Dustbin Survey~\cite{springer_survey2024}& 2024 & 45 systems           & Survey         & ---    & ---                   & Review only \\
+\midrule
+\textbf{This Project}  & \textbf{2025} & \textbf{WasteManagement-2} & \textbf{Detection} & \textbf{2} &
+\textbf{94.39\% mAP@0.5 (val)} \newline \textbf{85.46\% mAP@0.5 (test)} &
+\textbf{Binary only; GPU-validated inference} \\
+\bottomrule
+\end{tabular}}
+\end{table}
+\noindent\footnotesize{Note: Results are reported on each study's own dataset and are not directly numerically comparable.}
+\normalsize
+
+Based on the review, the following research gaps are identified:
+
+\begin{enumerate}
+    \item \textbf{Absence of systematic ablation studies:} Most existing works propose architectural modifications without controlled experiments isolating individual component contributions. Our eight-step ablation study addresses this gap.
+    \item \textbf{Dataset limitations:} Most studies use controlled single-item datasets (TrashNet, TACO) that do not reflect real-world mixed waste scenarios. Our custom 3,000-image dataset covers mixed indoor/outdoor environments.
+    \item \textbf{Augmentation underutilisation:} Prior works treat augmentation as a minor preprocessing step rather than a primary performance driver. Our study establishes augmentation as the dominant factor (+15\% mAP).
+    \item \textbf{Limited multi-scale feature fusion:} Standard FPN necks are used without exploration of bidirectional alternatives for waste classification. We evaluate BiFPN as an improvement.
+    \item \textbf{No deployment-ready open system:} Most academic systems are not accompanied by deployable applications. Our project includes a Streamlit-based demo application.
+\end{enumerate}
+
+\section{Positioning of This Work}
+
+This project directly addresses the identified gaps by: (i) constructing a diverse custom dataset, (ii) conducting the first systematic ablation study of this scope for binary waste classification, (iii) demonstrating the dominant effect of augmentation, (iv) integrating BiFPN for improved multi-scale detection, and (v) providing a fully deployable demo system. The resulting model achieves 94.39\% mAP@0.5 on the validation set and 85.46\% mAP@0.5 on the independent held-out test set, representing a strong baseline for binary waste classification with real-time GPU inference capability.

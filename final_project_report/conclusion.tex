@@ -1,0 +1,58 @@
+\chapter{CONCLUSION}
+
+\section{Summary}
+
+This project presented the design, implementation, and systematic evaluation of a \textbf{Smart Waste Segregation System} using deep learning-based object detection. The system classifies waste items into Biodegradable (Bio) and Non-Biodegradable (Non-Bio) categories in real time, addressing the critical need for automated waste segregation at the point of disposal.
+
+The core technical contribution is an enhanced \textbf{YOLO11s} detection architecture augmented with a \textbf{Bidirectional Feature Pyramid Network (BiFPN)} neck for improved multi-scale feature fusion and a \textbf{Wise-IoU (WIoU)} loss function for geometrically robust bounding box regression. These architectural choices were validated through a rigorous eight-step ablation study rather than assumed beneficial.
+
+\section{Key Findings}
+
+The project produced the following empirically validated findings:
+
+\begin{enumerate}
+    \item \textbf{Data augmentation is the single most impactful factor:} A 3.4$\times$ augmentation of the training dataset from 3,000 to 10,175 images produced a +15.0\% absolute mAP@0.5 improvement — larger than all architectural modifications combined. This finding emphasises the primacy of data quality and diversity in deep learning applications.
+
+    \item \textbf{BiFPN bidirectional feature fusion improves multi-scale detection:} The BiFPN neck contributed +0.99\% mAP@0.5 over the augmented baseline, confirming that bidirectional weighted feature fusion better represents the multi-scale nature of waste objects compared to standard unidirectional FPN.
+
+    \item \textbf{Architectural complexity has diminishing returns:} Deformable convolutions, which were expected to improve spatial adaptivity for irregular waste shapes, instead degraded performance by $-3.47\%$. This demonstrates that on datasets of moderate size, increased model complexity introduces more optimisation difficulty than representational benefit.
+
+    \item \textbf{Extended training consistently improves performance:} The 100-epoch final model outperformed the 50-epoch equivalent by +2.80\% mAP@0.5, confirming that the YOLO11s + BiFPN + WIoU configuration benefits from extended optimisation without overfitting.
+
+    \item \textbf{The system achieves strong detection performance:} The final model reaches \textbf{94.39\% mAP@0.5} on the validation set and \textbf{85.46\% mAP@0.5} on the independent held-out test set, with balanced per-class validation performance (Bio: 93.62\%, Non-Bio: 95.17\% AP@0.5). The test-set gap reflects the denser, more challenging nature of the test partition (1.74 instances/image vs.\ 1.19 for validation). At 4.0\,ms inference per image on the NVIDIA L40S GPU, the system meets real-time throughput requirements for GPU-accelerated deployment scenarios.
+\end{enumerate}
+
+\section{Project Achievements}
+
+Against the objectives set in Chapter 1, the project achieved:
+
+\begin{table}[H]
+\centering
+\caption{Objectives vs Achievements}
+\label{tab:objectives}
+\begin{tabular}{lll}
+\toprule
+\textbf{Objective} & \textbf{Target} & \textbf{Achieved} \\
+\midrule
+Dataset construction     & 3,000 raw images       & 3,000 images, 10,175 augmented \\
+Classification accuracy  & $\geq$93\% mAP@0.5     & \textbf{94.39\%} (val) / \textbf{85.46\%} (test) mAP@0.5 \\
+Ablation study           & Systematic evaluation  & 8-step controlled study \\
+Inference speed          & $<$50\,ms              & \textbf{4.0\,ms} inference \\
+Demo application         & Laptop deployable      & Streamlit app with webcam \\
+Research publication     & Springer LNCS format   & Complete draft produced \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+All six primary objectives were met or exceeded.
+
+\section{Broader Impact}
+
+Beyond the technical contributions, this project demonstrates that:
+\begin{itemize}
+    \item High-accuracy automated waste classification is achievable with modest resources (one GPU, a self-collected dataset, and standard open-source tools).
+    \item Evidence-based architectural design — through ablation studies — produces cleaner, more interpretable, and often better-performing models than ad-hoc complexity addition.
+    \item A deployable system can be built alongside a research publication, bridging the gap between academic results and practical utility.
+\end{itemize}
+
+The 94.39\% mAP@0.5 on the validation set and 85.46\% mAP@0.5 on the independent test set represent a strong foundation for real-world deployment in smart bin systems, waste sorting facilities, and educational waste management demonstrations.

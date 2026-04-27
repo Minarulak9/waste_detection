@@ -1,0 +1,336 @@
+\chapter{IMPLEMENTATION}
+
+\section{Introduction}
+
+This chapter describes the practical implementation of all project components, including environment setup, dataset preparation, model training scripts, ablation experiments, and the demo application. Code snippets illustrate key implementation details.
+
+\section{Development Environment}
+
+\subsection{Server Environment (Training)}
+Training was conducted on the Adamas University AI/ML computing cluster:
+\begin{itemize}
+    \item OS: Linux (Ubuntu 20.04)
+    \item Python: 3.13.12
+    \item PyTorch: 2.12.0.dev20260331+cu128
+    \item Ultralytics: 8.4.33
+    \item CUDA: 12.8
+    \item GPU: NVIDIA L40S (45,458 MiB)
+\end{itemize}
+
+\subsection{Local Environment (Demo)}
+\begin{itemize}
+    \item OS: Windows 10/11
+    \item Python: 3.10+
+    \item Required packages: \texttt{ultralytics}, \texttt{streamlit}, \texttt{opencv-python}, \texttt{pillow}
+\end{itemize}
+
+\section{Dataset Preparation}
+
+\subsection{Dataset Download}
+
+After annotation and augmentation on Roboflow, the dataset was downloaded to the server in YOLOv8 format:
+
+\begin{lstlisting}[language=Python, caption=Dataset Download Script]
+from roboflow import Roboflow
+
+rf = Roboflow(api_key="YOUR_API_KEY")
+project = rf.workspace("minaruls-workspace-2ptiz")\
+            .project("wastemanagement-3iq6q-hl0ll")
+version = project.version(2)
+dataset = version.download("yolov8")
+\end{lstlisting}
+
+\subsection{Data Configuration File}
+
+The \texttt{data.yaml} file defines dataset paths and class names:
+
+\begin{lstlisting}[language=Python, caption=data.yaml Configuration]
+path: /data/.../wastemanagement-2
+train: train/images
+val:   valid/images
+test:  test/images
+
+nc: 2
+names:
+  - Bio
+  - Non Bio
+\end{lstlisting}
+
+\section{Custom Modules Implementation}
+
+\subsection{BiFPN Module}
+
+The BiFPN neck was implemented as a custom PyTorch module integrated into the Ultralytics training pipeline:
+
+\begin{lstlisting}[language=Python, caption=BiFPN Core Implementation]
+import torch
+import torch.nn as nn
+
+class BiFPNLayer(nn.Module):
+    def __init__(self, channels):
+        super().__init__()
+        # Learnable fusion weights for top-down pass
+        self.w_td = nn.Parameter(torch.ones(2))
+        # Learnable fusion weights for bottom-up pass
+        self.w_bu = nn.Parameter(torch.ones(3))
+        self.eps  = 1e-4
+        # Depthwise separable convolutions
+        self.conv_p3 = nn.Sequential(
+            nn.Conv2d(channels, channels, 3, padding=1,
+                      groups=channels, bias=False),
+            nn.Conv2d(channels, channels, 1, bias=False),
+            nn.BatchNorm2d(channels), nn.ReLU(inplace=True)
+        )
+        self.conv_p4 = nn.Sequential(...)  # same structure
+        self.conv_p5 = nn.Sequential(...)
+
+    def forward(self, features):
+        p3, p4, p5 = features
+        w_td = torch.relu(self.w_td)
+        w_bu = torch.relu(self.w_bu)
+
+        # Top-down: P5 -> P4 -> P3
+        p4_td = (w_td[0]*p4 + w_td[1]*F.interpolate(p5, p4.shape[2:]))\
+                 / (w_td.sum() + self.eps)
+        p3_td = (w_td[0]*p3 + w_td[1]*F.interpolate(p4_td, p3.shape[2:]))\
+                 / (w_td.sum() + self.eps)
+
+        # Bottom-up: P3 -> P4 -> P5
+        p4_out = (w_bu[0]*p4 + w_bu[1]*p4_td +
+                  w_bu[2]*F.max_pool2d(p3_td, 2))\
+                  / (w_bu.sum() + self.eps)
+        p5_out = (w_bu[0]*p5 + w_bu[1]*F.max_pool2d(p4_out, 2))\
+                  / (w_bu[:2].sum() + self.eps)
+        return p3_td, p4_out, p5_out
+\end{lstlisting}
+
+\subsection{WIoU Loss Integration}
+
+WIoU loss was integrated by patching the Ultralytics loss module:
+
+\begin{lstlisting}[language=Python, caption=WIoU Loss Patch]
+from ultralytics.utils import loss as loss_module
+from ultralytics_custom.utils.wiou import WIoUBboxLoss
+
+# Patch standard bbox loss with WIoU variant
+loss_module.BboxLoss = WIoUBboxLoss
+print("[WIoU] Patch applied successfully")
+\end{lstlisting}
+
+\section{Training Implementation}
+
+\subsection{Final Training Script}
+
+The complete final training run (\texttt{train\_final\_best.py}) that produced the best model:
+
+\begin{lstlisting}[language=Python, caption=Final Training Configuration]
+import sys
+sys.path.insert(0, f'{BASE}/dual_stream_bifpn')
+
+from ultralytics import YOLO
+from ultralytics_custom.utils.wiou import WIoUBboxLoss
+from ultralytics.utils import loss as loss_module
+
+# Apply WIoU patch
+loss_module.BboxLoss = WIoUBboxLoss
+
+# Load pretrained model
+model = YOLO(f'{BASE}/dual_stream_bifpn/yolo11s.pt')
+
+# Train with final configuration
+results = model.train(
+    data          = f'{DATASET}/data.yaml',
+    epochs        = 100,
+    imgsz         = 640,
+    batch         = 32,
+    optimizer     = 'AdamW',
+    lr0           = 0.01,
+    lrf           = 0.001,
+    cos_lr        = True,
+    weight_decay  = 0.0005,
+    warmup_epochs = 3,
+    patience      = 15,
+    project       = f'{BASE}/results',
+    name          = 'final_wiou_bifpn_100ep',
+    device        = 0,
+    save_period   = 10,
+    verbose       = True,
+)
+\end{lstlisting}
+
+\subsection{Model Evaluation}
+
+After training, the best checkpoint was evaluated separately:
+
+\begin{lstlisting}[language=Python, caption=Model Evaluation]
+model = YOLO(f'{BASE}/results/final_wiou_bifpn_100ep/weights/best.pt')
+
+metrics = model.val(
+    data   = f'{DATASET}/data.yaml',
+    imgsz  = 640,
+    device = 0,
+)
+
+print(f"mAP@0.5:      {metrics.box.map50:.4f}")
+print(f"mAP@0.5:0.95: {metrics.box.map:.4f}")
+print(f"Precision:    {metrics.box.p.mean():.4f}")
+print(f"Recall:       {metrics.box.r.mean():.4f}")
+\end{lstlisting}
+
+\section{Ablation Experiment Implementation}
+
+Each ablation step was implemented as a separate training script. Below is the implementation pattern for the BiFPN experiment (Step 5):
+
+\begin{lstlisting}[language=Python, caption=BiFPN Experiment Training]
+import sys
+sys.path.insert(0, f'{BASE}/dual_stream_bifpn')
+
+from ultralytics import YOLO
+from ultralytics_custom.utils.wiou import WIoUBboxLoss
+from ultralytics.utils import loss as loss_module
+from ultralytics_custom.nn.modules.bifpn import BiFPN
+
+loss_module.BboxLoss = WIoUBboxLoss
+
+model = YOLO(f'{BASE}/dual_stream_bifpn/yolo11s.pt')
+
+results = model.train(
+    data    = f'{DATASET}/data.yaml',
+    epochs  = 50,
+    imgsz   = 640,
+    batch   = 32,
+    project = f'{BASE}/results',
+    name    = 'exp_bifpn_cbam_wiou_50ep',
+    device  = 0,
+)
+\end{lstlisting}
+
+\section{Demo Application Implementation}
+
+The demo application (\texttt{demo\_app.py}) was implemented as a single-file Streamlit application. Key design goals were: clean modern dark-themed UI, useful runtime statistics (inference time, FPS, per-class percentage), and performance on low-end hardware via automatic input resizing and an optional Fast Mode (320\,px input, $\approx$4$\times$ faster on CPU). Camera enumeration uses Windows DirectShow (\texttt{cv2.CAP\_DSHOW}) for reliable integrated webcam detection.
+
+\subsection{Model Loading with Caching}
+
+\begin{lstlisting}[language=Python, caption=Cached Model Loading]
+import streamlit as st
+from ultralytics import YOLO
+
+MODEL_PATH = "codebase/BEST_MODELS/best_0944_final_wiou_bifpn_100ep.pt"
+
+@st.cache_resource
+def load_model():
+    """Load model once and cache for all requests."""
+    return YOLO(MODEL_PATH)
+
+model = load_model()
+\end{lstlisting}
+
+\subsection{Inference Function}
+
+The inference function measures wall-clock time around the model call to display latency in the UI. Large images are capped at 1280\,px before inference to improve responsiveness on low-end hardware without accuracy loss:
+
+\begin{lstlisting}[language=Python, caption=Inference Function with Timing]
+import time
+
+def run_inference(img_bgr, imgsz=640):
+    # Cap very large images for faster CPU inference
+    h, w = img_bgr.shape[:2]
+    if max(h, w) > 1280:
+        scale   = 1280 / max(h, w)
+        img_bgr = cv2.resize(img_bgr,
+                             (int(w*scale), int(h*scale)))
+    t0 = time.perf_counter()
+    results    = model.predict(img_bgr,
+                               conf    = conf_thresh,
+                               iou     = iou_thresh,
+                               imgsz   = imgsz,
+                               verbose = False)
+    elapsed_ms = (time.perf_counter() - t0) * 1000
+    result     = results[0]
+    return result, result.plot(line_width=2), elapsed_ms
+\end{lstlisting}
+
+\subsection{Detection Display}
+
+\begin{lstlisting}[language=Python, caption=Detection Results Display]
+def show_detections(result):
+    boxes = result.boxes
+    names = result.names
+
+    if boxes is None or len(boxes) == 0:
+        st.info("No waste detected in this image.")
+        return
+
+    bio_count = nonbio_count = 0
+    for box in boxes:
+        label = names[int(box.cls[0])]
+        conf  = float(box.conf[0])
+        if label == "Bio":
+            bio_count += 1
+            tag = '<span style="background:#14532d;color:#86efac;
+                   padding:2px 10px;border-radius:20px;">Bio</span>'
+        else:
+            nonbio_count += 1
+            tag = '<span style="background:#7f1d1d;color:#fca5a5;
+                   padding:2px 10px;border-radius:20px;">Non Bio</span>'
+        st.markdown(f"{tag}  Confidence: {conf:.1%}",
+                    unsafe_allow_html=True)
+
+    col1, col2 = st.columns(2)
+    col1.metric("Bio (Biodegradable)", bio_count)
+    col2.metric("Non-Bio (Non-Biodegradable)", nonbio_count)
+\end{lstlisting}
+
+\section{Project Directory Structure}
+
+The final project is organised as follows:
+
+\begin{lstlisting}[caption=Project Directory Structure]
+D:/final_project/
+|-- codebase/
+|   |-- BEST_MODELS/
+|   |   `-- best_0944_final_wiou_bifpn_100ep.pt  (19.2 MB)
+|   |-- dual_stream_bifpn/
+|   |   |-- ultralytics_custom/
+|   |   |   |-- nn/modules/bifpn.py
+|   |   |   |-- nn/modules/sobel.py
+|   |   |   `-- utils/wiou.py
+|   |   `-- train_sobel_bifpn.py
+|   |-- results/
+|   |   `-- final_wiou_bifpn_100ep/
+|   |       |-- weights/best.pt
+|   |       |-- results.csv
+|   |       |-- confusion_matrix.png
+|   |       `-- BoxPR_curve.png
+|   `-- train_final_best.py
+|-- wastemanagement-2/
+|   |-- data.yaml
+|   |-- train/images/ (9576 images)
+|   |-- valid/images/ (300 images)
+|   `-- test/images/  (299 images)
+|-- demo_app.py
+|-- run_demo.bat
+|-- docs/
+|   |-- springer_paper.tex
+|   `-- architecture_diagram.png
+`-- final_project_report/
+    |-- thesis.tex
+    `-- [chapter files]
+\end{lstlisting}
+
+\section{Running the Demo Application}
+
+The demo application can be launched with a single command:
+
+\begin{lstlisting}[language=bash, caption=Launching the Demo Application]
+# Install dependencies
+pip install streamlit ultralytics opencv-python pillow
+
+# Run the application
+cd D:/final_project
+streamlit run demo_app.py
+
+# Application opens at: http://localhost:8501
+\end{lstlisting}
+
+Alternatively, double-click \texttt{run\_demo.bat} on Windows.

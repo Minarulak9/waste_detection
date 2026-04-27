@@ -1,0 +1,139 @@
+\chapter{TECHNOLOGY}
+
+\section{Introduction}
+
+This chapter describes the software frameworks, programming languages, libraries, and hardware infrastructure used in the development of the Smart Waste Segregation System. Each technology is discussed with respect to its role in the project, its key features, and the rationale for its selection over alternatives.
+
+\section{Programming Language: Python}
+
+Python (version 3.13) served as the primary programming language for all components of this project — dataset preparation, model training, evaluation, and the demo application. Python's dominance in the machine learning and computer vision domain is supported by several key characteristics:
+
+\begin{itemize}
+    \item \textbf{Rich ecosystem:} PyTorch, Ultralytics, OpenCV, NumPy, and Streamlit are all natively Python, eliminating language interoperability complexity.
+    \item \textbf{Rapid prototyping:} Dynamic typing and interactive notebooks (Jupyter) enable rapid experiment iteration.
+    \item \textbf{Community support:} Extensive documentation, tutorials, and pre-trained model repositories.
+    \item \textbf{GPU integration:} Seamless CUDA integration through PyTorch for high-performance training.
+\end{itemize}
+
+\section{Deep Learning Framework: PyTorch}
+
+PyTorch (version 2.12.0) is an open-source deep learning framework developed by Meta AI Research. It provides the computational backbone for all model training and inference operations in this project.
+
+Key features relevant to this project:
+\begin{itemize}
+    \item \textbf{Dynamic computational graphs:} Enables flexible model architecture experimentation, critical for BiFPN and WIoU integration.
+    \item \textbf{CUDA acceleration:} Native support for NVIDIA GPU computing, enabling training on the L40S GPU at full throughput.
+    \item \textbf{Autograd:} Automatic differentiation for gradient computation during backpropagation.
+    \item \textbf{TorchScript and ONNX export:} Model serialisation for deployment across different runtime environments.
+\end{itemize}
+
+PyTorch was selected over TensorFlow due to its more flexible research-oriented design, better integration with Ultralytics YOLO, and stronger adoption in the computer vision research community.
+
+\section{Object Detection Framework: Ultralytics YOLO11}
+
+Ultralytics provides the production-grade implementation of the YOLO (You Only Look Once) series of object detectors. YOLO11 (version 8.4.33) is the latest generation, offering improved accuracy and efficiency over YOLOv8 and earlier variants.
+
+\subsection{YOLO Architecture Overview}
+
+YOLO models operate in a single-pass detection paradigm — the entire image is processed once to predict all bounding boxes and class labels simultaneously, enabling real-time performance. The architecture consists of three main components:
+
+\begin{enumerate}
+    \item \textbf{Backbone:} Extracts hierarchical feature representations from the input image. YOLO11s uses C3k2 (Cross Stage Partial with kernel size 2) blocks optimised for efficiency.
+    \item \textbf{Neck:} Aggregates multi-scale features from the backbone for detecting objects at different scales.
+    \item \textbf{Head:} An anchor-free detection head that predicts class probabilities, bounding box coordinates, and confidence scores.
+\end{enumerate}
+
+\subsection{YOLO11s Variant Selection}
+
+The small (s) variant of YOLO11 was selected through preliminary comparisons:
+
+\begin{table}[H]
+\centering
+\caption{YOLO Variant Comparison (50 epochs, no augmentation)}
+\label{tab:yolo_compare}
+\begin{tabular}{lcccc}
+\toprule
+\textbf{Model} & \textbf{mAP@0.5} & \textbf{Recall} & \textbf{Params (M)} & \textbf{GFLOPs} \\
+\midrule
+YOLOv8n  & 0.7631 & ---    & 3.2  & 8.7  \\
+YOLO11n & 0.7566 & 0.6646 & 2.6  & 6.5  \\
+YOLO11s & 0.7565 & 0.7132 & 9.4  & 21.3 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+While YOLO11n and YOLO11s showed similar mAP at 50 epochs without augmentation, YOLO11s demonstrated superior recall (0.7132 vs 0.6646) and was selected as the base model for its stronger feature extraction capacity with the augmented dataset.
+
+\section{BiFPN: Bidirectional Feature Pyramid Network}
+
+BiFPN was introduced by Tan et al. in EfficientDet \cite{tan2020efficientdet} as an improvement over standard Feature Pyramid Networks (FPN) and PANet. Standard FPN fuses features in a single top-down direction, while BiFPN performs bidirectional (top-down and bottom-up) weighted fusion, allowing richer information flow across scales.
+
+The weighted fusion formula is:
+\begin{equation}
+\mathcal{O} = \frac{\sum_i w_i \cdot I_i}{\sum_i w_i + \varepsilon}
+\end{equation}
+
+where $w_i$ are learnable non-negative weights (ReLU-normalised) and $\varepsilon = 10^{-4}$. This allows the network to adaptively weight contributions from different pyramid levels rather than treating all levels equally. In our implementation, BiFPN operates on P3 (80$\times$80), P4 (40$\times$40), and P5 (20$\times$20) feature maps with 256 channels and 2 iterations.
+
+\section{WIoU: Wise Intersection over Union Loss}
+
+WIoU \cite{wiou2023} improves upon standard IoU-based bounding box regression losses by introducing a dynamic focusing coefficient that down-weights geometrically easy examples and concentrates gradient signal on hard, irregular bounding boxes. For waste objects — which frequently present non-rectangular, partially occluded shapes — this provides more informative training gradients.
+
+Standard IoU loss treats all predictions with equal gradient importance. WIoU modulates this with a focusing coefficient $r$ based on the geometric distance between predicted and ground-truth box centres, penalising predictions that deviate significantly from the target centre location.
+
+\section{Dataset Annotation and Augmentation: Roboflow}
+
+Roboflow is a cloud-based computer vision data management platform used in this project as an annotation and augmentation tool.
+
+\begin{itemize}
+    \item \textbf{Annotation:} The team used Roboflow's web-based annotation interface to draw bounding boxes around waste items in all 3,000 collected images. Annotations were exported in YOLOv8 format (normalised bounding box coordinates).
+    \item \textbf{Augmentation:} Roboflow's augmentation pipeline applied: horizontal flip, rotation, brightness and exposure jitter, and mosaic augmentation, expanding the dataset from 3,000 to 10,175 images.
+    \item \textbf{Dataset management:} Roboflow handles train/validation/test split management and version control for the dataset.
+    \item \textbf{Export:} Dataset was exported in YOLOv8-compatible format with a \texttt{data.yaml} configuration file specifying class names and split paths.
+\end{itemize}
+
+\section{Computer Vision Library: OpenCV}
+
+OpenCV (Open Source Computer Vision Library) is used in the demo application for: image reading and decoding, colour space conversion (BGR to RGB for display), webcam capture via \texttt{VideoCapture}, and image encoding for download functionality. OpenCV provides optimised C++ implementations accessible through Python bindings, ensuring efficient image processing in the demo application.
+
+\section{Demo Application Framework: Streamlit}
+
+Streamlit is an open-source Python framework for building interactive web applications with minimal code. It was selected for the demo application because:
+\begin{itemize}
+    \item \textbf{Rapid development:} A complete interactive web UI can be built in a single Python script.
+    \item \textbf{No frontend expertise required:} All UI components (sliders, file uploaders, image displays) are Python functions.
+    \item \textbf{Model caching:} \texttt{@st.cache\_resource} ensures the YOLO model is loaded once and reused across interactions, minimising latency.
+    \item \textbf{Laptop deployable:} Runs on \texttt{localhost:8501} without any cloud infrastructure.
+\end{itemize}
+
+\section{GPU Infrastructure: NVIDIA L40S}
+
+Model training was conducted on an \textbf{NVIDIA L40S} GPU provided by Adamas University's AI/ML computing cluster. Key specifications:
+
+\begin{table}[H]
+\centering
+\caption{NVIDIA L40S GPU Specifications}
+\label{tab:gpu}
+\begin{tabular}{ll}
+\toprule
+\textbf{Specification} & \textbf{Value} \\
+\midrule
+VRAM          & 45,458 MiB ($\approx$46 GB) \\
+CUDA Version  & 12.8 \\
+Architecture  & Ada Lovelace \\
+CUDA Cores    & 18,176 \\
+Memory Bandwidth & 864 GB/s \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+The L40S's large VRAM capacity (46 GB) enabled training with a batch size of 32 at 640$\times$640 resolution without memory constraints, and completed 100 epochs of training in \textbf{3.102 hours}.
+
+\section{Version Control and Experiment Management}
+
+All training scripts, configuration files, and results were maintained on the university's secure server:
+\begin{center}
+\texttt{/data/aicoe\_gpu/debdutta\_pal\_n2a/mca\_minarul/waste\_project/}
+\end{center}
+
+Each experiment was saved to a named subdirectory under \texttt{results/}, containing training metrics CSV, weight files (\texttt{best.pt}, \texttt{last.pt}), and visualisation outputs (confusion matrices, PR curves, training curves).

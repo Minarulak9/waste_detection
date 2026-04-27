@@ -1,0 +1,205 @@
+\chapter{SYSTEM DESIGN}
+
+\section{Introduction}
+
+This chapter presents the design of the Smart Waste Segregation System, covering functional and non-functional requirements, overall system architecture, data flow, module descriptions, and the dataset schema. The design decisions are guided by the dual goals of maximising classification accuracy and ensuring practical deployability on standard hardware.
+
+\section{Functional Requirements}
+
+The functional requirements define what the system must do:
+
+\begin{enumerate}
+    \item \textbf{FR1 — Waste Detection:} The system shall detect and localise waste items in an input image, drawing bounding boxes around each detected object.
+    \item \textbf{FR2 — Waste Classification:} For each detected object, the system shall classify it as either \textit{Bio} (biodegradable) or \textit{Non-Bio} (non-biodegradable).
+    \item \textbf{FR3 — Confidence Reporting:} The system shall report a confidence score (0--1) for each detection.
+    \item \textbf{FR4 — Image Input:} The system shall accept JPEG, PNG, BMP, and WebP image files as input.
+    \item \textbf{FR5 — Webcam Input:} The system shall support real-time detection from a connected webcam with selectable camera index.
+    \item \textbf{FR6 — Result Display:} The system shall display annotated images with colour-coded bounding boxes (green = Bio, red = Non-Bio) and class labels.
+    \item \textbf{FR7 — Count Summary:} The system shall summarise the total count of Bio and Non-Bio items detected.
+    \item \textbf{FR8 — Result Download:} The user shall be able to download the annotated result image.
+    \item \textbf{FR9 — Configurable Thresholds:} The system shall allow the user to adjust confidence and IoU thresholds via UI controls.
+    \item \textbf{FR10 — Model Loading:} The system shall load the trained model once at startup and reuse it for all subsequent inferences.
+\end{enumerate}
+
+\section{Non-Functional Requirements}
+
+\begin{enumerate}
+    \item \textbf{NFR1 — Performance:} Inference must complete within 50\,ms per image to support real-time application scenarios.
+    \item \textbf{NFR2 — Accuracy:} The classification model must achieve a minimum of 93\% mAP@0.5 on the validation set.
+    \item \textbf{NFR3 — Portability:} The system must run on a standard laptop with or without a dedicated GPU, using CPU inference as fallback.
+    \item \textbf{NFR4 — Usability:} The demo interface must be operable by a non-technical user without command-line interaction (browser-based UI).
+    \item \textbf{NFR5 — Reliability:} The model must handle images with varying lighting, backgrounds, and partial occlusion without crashing.
+    \item \textbf{NFR6 — Maintainability:} The codebase must be modular, with training scripts, model weights, and application code clearly separated.
+    \item \textbf{NFR7 — Model Size:} The deployed model file shall not exceed 25\,MB to remain practical for distribution.
+\end{enumerate}
+
+\section{System Architecture}
+
+The system is structured in four layers as shown in Figure~\ref{fig:sysarch}.
+
+\begin{figure}[H]
+\centering
+\begin{tabular}{|c|}
+\hline
+\textbf{Layer 4 — Presentation Layer} \\
+Streamlit Web Application (demo\_app.py) \\
+Image Upload / Webcam / Confidence Slider / Result Display \\
+\hline
+\textbf{Layer 3 — Inference Layer} \\
+YOLO11s + BiFPN + WIoU (best.pt) \\
+model.predict() / model.track() \\
+\hline
+\textbf{Layer 2 — Data Layer} \\
+WasteManagement-2 Dataset (10,175 images) \\
+data.yaml / Train / Valid / Test Splits \\
+\hline
+\textbf{Layer 1 — Training Infrastructure} \\
+PyTorch + Ultralytics + NVIDIA L40S GPU \\
+train\_final\_best.py / AdamW / Cosine LR \\
+\hline
+\end{tabular}
+\caption{System Architecture Layers}
+\label{fig:sysarch}
+\end{figure}
+
+\section{Data Flow Diagram}
+
+\subsection{Training Data Flow}
+
+\begin{enumerate}
+    \item Raw images (3,000) collected by team $\rightarrow$ uploaded to Roboflow.
+    \item Manual bounding box annotation by team $\rightarrow$ exported as YOLOv8 format labels.
+    \item Augmentation pipeline applied in Roboflow $\rightarrow$ 10,175 images generated.
+    \item Dataset downloaded and split: 9,576 train / 300 valid / 299 test.
+    \item \texttt{data.yaml} specifies paths and class names.
+    \item Training script loads dataset $\rightarrow$ trains YOLO11s + BiFPN + WIoU.
+    \item Best model saved as \texttt{best.pt} based on validation mAP@0.5.
+\end{enumerate}
+
+\subsection{Inference Data Flow}
+
+\begin{enumerate}
+    \item User uploads image or activates webcam in the Streamlit app.
+    \item Input image decoded and converted to BGR format by OpenCV.
+    \item Image passed to \texttt{model.predict()} with configured conf and IoU thresholds.
+    \item YOLO11s backbone extracts P3/P4/P5 feature maps.
+    \item BiFPN neck fuses features bidirectionally.
+    \item Detection head predicts bounding boxes, class labels, and confidence scores.
+    \item Post-processing: NMS applied to filter overlapping detections.
+    \item Annotated image rendered with colour-coded boxes.
+    \item Results displayed to user with count summary.
+\end{enumerate}
+
+\section{Module Description}
+
+\subsection{Module 1 — Dataset Pipeline}
+
+\begin{itemize}
+    \item \textbf{Input:} 3,000 raw images (JPEG/PNG)
+    \item \textbf{Process:} Annotation (Roboflow) $\rightarrow$ Augmentation $\rightarrow$ Export
+    \item \textbf{Output:} 10,175 annotated images with YOLOv8 format labels
+    \item \textbf{Key file:} \texttt{wastemanagement-2/data.yaml}
+\end{itemize}
+
+\subsection{Module 2 — Model Training}
+
+\begin{itemize}
+    \item \textbf{Input:} Dataset + hyperparameter configuration
+    \item \textbf{Process:} YOLO11s initialised from COCO pretrained weights $\rightarrow$ BiFPN neck attached $\rightarrow$ WIoU loss applied $\rightarrow$ AdamW optimiser with cosine LR $\rightarrow$ 100 epochs
+    \item \textbf{Output:} \texttt{best.pt} (19.2\,MB trained model)
+    \item \textbf{Key file:} \texttt{codebase/train\_final\_best.py}
+\end{itemize}
+
+\subsection{Module 3 — Ablation Experiments}
+
+\begin{itemize}
+    \item \textbf{Input:} Dataset + variant configurations
+    \item \textbf{Process:} Six controlled training runs with systematic component addition/removal
+    \item \textbf{Output:} Comparative results CSV files, confusion matrices, PR curves
+    \item \textbf{Key files:} \texttt{codebase/train\_3b.py}, \texttt{train\_3c.py}, \texttt{train\_3d.py}
+\end{itemize}
+
+\subsection{Module 4 — Demo Application}
+
+\begin{itemize}
+    \item \textbf{Input:} Uploaded image or webcam frame
+    \item \textbf{Process:} Model inference $\rightarrow$ annotation rendering $\rightarrow$ UI display
+    \item \textbf{Output:} Annotated image with Bio/Non-Bio labels and confidence scores
+    \item \textbf{Key file:} \texttt{demo\_app.py}
+\end{itemize}
+
+\section{Dataset Schema}
+
+\subsection{Class Definition}
+
+The dataset contains two mutually exclusive classes:
+
+\begin{table}[H]
+\centering
+\caption{Dataset Class Definitions}
+\label{tab:classes}
+\resizebox{\textwidth}{!}{%
+\begin{tabular}{lll}
+\toprule
+\textbf{Class ID} & \textbf{Class Name} & \textbf{Examples} \\
+\midrule
+0 & Bio (Biodegradable)          & Fruit peels, vegetable scraps, leaves, food waste, paper, cardboard, wood \\
+1 & Non-Bio (Non-Biodegradable)  & Plastic bottles, metal cans, glass, wrappers, polythene bags, electronic waste \\
+\bottomrule
+\end{tabular}}
+\end{table}
+
+\subsection{Annotation Format}
+
+Labels are stored in YOLOv8 format: one \texttt{.txt} file per image, with each line representing one object:
+
+\begin{center}
+\texttt{class\_id  x\_centre  y\_centre  width  height}
+\end{center}
+
+All coordinates are normalised to [0, 1] relative to image dimensions.
+
+\subsection{Dataset Splits}
+
+\begin{table}[H]
+\centering
+\caption{Dataset Split Distribution}
+\label{tab:splits}
+\resizebox{\textwidth}{!}{%
+\begin{tabular}{lcccccc}
+\toprule
+\textbf{Split} & \textbf{Images} & \textbf{\%} & \textbf{Bio Boxes} & \textbf{Non-Bio Boxes} & \textbf{Total Boxes} & \textbf{Purpose} \\
+\midrule
+Training   & 9,576  & 94.1\% & 18,834 & 20,228 & 39,062 & Model optimisation \\
+Validation & 300    & 2.95\% & 179    & 177    & 356    & Architecture selection \\
+Test       & 299    & 2.94\% & 267    & 255    & 522    & Final unbiased evaluation \\
+\midrule
+\textbf{Total} & \textbf{10,175} & \textbf{100\%} & \textbf{19,280} & \textbf{20,660} & \textbf{39,940} & \\
+\bottomrule
+\end{tabular}}
+\end{table}
+
+\section{Use Case Description}
+
+\subsection{Use Case 1: Image Classification}
+\begin{itemize}
+    \item \textbf{Actor:} User (student, facility operator)
+    \item \textbf{Precondition:} Demo application running at localhost:8501
+    \item \textbf{Flow:} User uploads waste image $\rightarrow$ System detects and classifies $\rightarrow$ System displays annotated result with confidence scores
+    \item \textbf{Postcondition:} User can download annotated result
+\end{itemize}
+
+\subsection{Use Case 2: Live Webcam Detection}
+\begin{itemize}
+    \item \textbf{Actor:} User
+    \item \textbf{Precondition:} Webcam connected, application running
+    \item \textbf{Flow:} User selects camera index $\rightarrow$ Activates webcam toggle $\rightarrow$ System streams real-time annotated frames
+    \item \textbf{Postcondition:} Continuous detection until user stops
+\end{itemize}
+
+\subsection{Use Case 3: Threshold Adjustment}
+\begin{itemize}
+    \item \textbf{Actor:} User
+    \item \textbf{Flow:} User adjusts confidence or IoU slider $\rightarrow$ Next inference uses updated thresholds $\rightarrow$ Result sensitivity changes
+    \item \textbf{Postcondition:} User can trade off precision vs recall as needed
+\end{itemize}
