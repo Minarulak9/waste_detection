@@ -147,13 +147,6 @@ In this work, we make the following \textbf{contributions}:
         by recent surveys~\cite{springer_survey2024}.
 \end{enumerate}
 
-The remainder of this paper is organised as follows.
-Section~\ref{sec:related} reviews related work.
-Section~\ref{sec:method} describes the dataset, proposed architecture,
-and training methodology.
-Section~\ref{sec:experiments} presents experimental results and
-ablation analysis.
-Section~\ref{sec:conclusion} concludes with directions for future work.
 
 % ============================================================
 \section{Related Work}
@@ -251,42 +244,25 @@ Liu et al.~\cite{ecodetect}            & Custom domestic     & Detection      & 
 
 \subsection{Dataset: WasteManagement-2}
 
-We constructed a custom waste image dataset, named
-\textbf{WasteManagement-2}, comprising \textbf{3,000
-raw images} across two classes: \textit{Bio} (biodegradable organic
-waste) and \textit{Non-Bio} (non-biodegradable waste including
-plastics, metals, and glass). Images were collected through a
-combination of direct photography using mobile cameras and targeted
-internet collection, covering both indoor and outdoor environments
-to ensure diversity in lighting, background, and waste presentation
-conditions.
+We constructed \textbf{WasteManagement-2}, a custom dataset of
+\textbf{3,000 images} across two classes — \textit{Bio}
+(biodegradable) and \textit{Non-Bio} (plastics, metals, glass) —
+collected via direct photography and internet sourcing under varied
+lighting, backgrounds, and occlusion conditions.
 
-All images were manually annotated using the Roboflow platform,
-producing bounding box labels for each waste instance. A subset of
-272 label files contained polygon (segmentation) annotations rather
-than the 5-field YOLO bounding box format required for training.
-These were corrected by computing, for each polygon, the tightest
-axis-aligned bounding box from the minimum and maximum of its
-normalised coordinate sequence — preserving the full object extent
-without any manual re-annotation. Additionally, one duplicate image
-and within-file duplicate annotation lines were removed to prevent
-double-counting during loss computation. After these fixes, all
-3,000 images carried clean, consistent YOLO-format labels. The
-annotated dataset is publicly available on Roboflow Universe
-under CC BY 4.0 at: \url{https://universe.roboflow.com/minaruls-workspace-2ptiz/wastemanagement-3iq6q-hl0ll/dataset/2}
+All images were manually annotated on Roboflow with bounding boxes.
+272 polygon-format labels were automatically converted to YOLO's
+5-field format by computing the tightest axis-aligned bounding box
+from each polygon's coordinate sequence; one duplicate image and
+redundant annotation lines were also removed. The dataset is publicly
+available at: \url{https://universe.roboflow.com/minaruls-workspace-2ptiz/wastemanagement-3iq6q-hl0ll/dataset/2}
 
-To improve generalisation, we applied a structured augmentation
-pipeline exclusively to the \textbf{training split} via Roboflow v2,
-expanding the training set from 2,387 unique source images to
-\textbf{9,576 images} (average $\times$4.01 augmentation factor).
-Validation and test splits retain only the original unaugmented
-images, ensuring no augmented copy of a validation or test image
-appears in training. The augmentation operations applied were:
-horizontal flip (50\% probability), random rotation ($\pm15°$),
-brightness jitter ($\pm20\%$), exposure jitter ($\pm15\%$), and
-mosaic augmentation. All images were resized to $640\times640$ pixels
-with auto-orientation. Dataset composition is summarised in
-Table~\ref{tab:dataset}.
+Augmentation was applied exclusively to the training split via
+Roboflow v2, expanding it from 2,387 to \textbf{9,576 images}
+($\times$4.01 factor) using horizontal flip, rotation ($\pm15°$),
+brightness/exposure jitter, and mosaic. Validation and test splits
+retain only original unaugmented images. Dataset composition is
+summarised in Table~\ref{tab:dataset}.
 
 \begin{table}[H]
 \centering
@@ -468,16 +444,6 @@ levels, demonstrating practical robustness beyond aggregate metrics.
 \end{subfigure}
 \hfill
 \begin{subfigure}[b]{0.47\textwidth}
-  \includegraphics[width=\textwidth]{organic.png}
-  \caption{Bio: organic waste detected}
-\end{subfigure}
-\\[0.5em]
-\begin{subfigure}[b]{0.47\textwidth}
-  \includegraphics[width=\textwidth]{multiple_items.png}
-  \caption{Multiple items: Bio + Non-Bio co-detected}
-\end{subfigure}
-\hfill
-\begin{subfigure}[b]{0.47\textwidth}
   \includegraphics[width=\textwidth]{cluttered_items.png}
   \caption{Cluttered scene: dense multi-item detection}
 \end{subfigure}
@@ -547,49 +513,26 @@ presented in Table~\ref{tab:ablation}.
 \end{tabular}
 \end{table}
 
-\noindent The ablation study yields five key findings:
+\noindent Three key findings emerge:
 
 \begin{itemize}
-  \item \textbf{Finding 1 — Data augmentation is the dominant factor.}
-        Steps 2$\to$3 yield $+15.0\%$ absolute mAP@0.5 improvement,
-        representing the single largest performance gain across all
-        interventions, exceeding all architectural modifications
-        combined.
+  \item \textbf{Augmentation dominates.} Steps 2$\to$3 yield the
+        largest single gain: $+15.0\%$ mAP@0.5, exceeding all
+        architectural modifications combined.
 
-  \item \textbf{Finding 2 — BiFPN improves multi-scale fusion.}
-        BiFPN (Step 5: 91.59\%) provides a meaningful gain over the
-        augmented baseline (Step 3: 90.60\%), confirming that
-        bidirectional feature fusion better represents the multi-scale
-        nature of waste objects.
+  \item \textbf{BiFPN adds meaningful multi-scale improvement.}
+        Step 5 (91.59\%) outperforms the augmented baseline
+        (Step 3: 90.60\%). Deformable convolutions (Step 6: 88.12\%)
+        regress performance, confirming complexity beyond BiFPN
+        is detrimental at this dataset scale.
 
-  \item \textbf{Finding 3 — Deformable convolutions are detrimental.}
-        Step 6 (88.12\%) decreases performance relative to Step 5
-        (91.59\%), demonstrating that architectural complexity beyond
-        BiFPN introduces optimisation difficulty without representational
-        benefit on this dataset scale.
-
-  \item \textbf{Finding 4 — Architecture vs.\ training-time effects are
-        separable.} Step 7 evaluates the final architecture (BiFPN +
-        WIoU, CBAM removed) at 50 epochs, yielding 88.77\% mAP@0.5.
-        Step 8 trains the same architecture to 100 epochs, recovering
-        and surpassing all 50-epoch baselines at 94.39\%.
-
-  \item \textbf{Finding 5 — Extended training contributes $+5.62\%$
-        mAP@0.5.} The gain from Step 7 (88.77\%, 50 ep) to Step 8
-        (94.39\%, 100 ep) confirms the BiFPN + WIoU architecture
-        continues improving without overfitting across 100 epochs.
+  \item \textbf{Extended training recovers CBAM-free architecture.}
+        CBAM was excluded due to initialisation overhead from COCO
+        pretrained weights causing slower convergence. Removing it
+        and training to 100 epochs (Step 8: 94.39\%) yields
+        $+2.80\%$ over the best CBAM model (Step 5: 91.59\%),
+        and $+5.62\%$ over the 50-epoch equivalent (Step 7: 88.77\%).
 \end{itemize}
-
-\noindent\textbf{CBAM exclusion rationale.}
-CBAM degraded performance when first introduced (Step 4: 88.05\%,
-$-2.55\%$ vs.\ augmented baseline) and was ultimately excluded for two
-reasons: (i) waste images exhibit high intra-class texture variability,
-making channel and spatial suppression potentially counterproductive;
-(ii) CBAM introduces initialisation overhead from COCO pretrained
-weights, manifesting as slower convergence within a 50-epoch budget.
-Removing CBAM and extending training to 100 epochs yields a net gain
-of $+2.80\%$ over the best CBAM-included model (Step 5: 91.59\%
-$\to$ Step 8: 94.39\%).
 
 % ============================================================
 \section{Conclusion}
@@ -643,104 +586,83 @@ used in this study.
 \bibitem{yolo11}
 Ultralytics:
 {YOLO11}: A New Era in Object Detection.
-Ultralytics (2024).
-\url{https://docs.ultralytics.com/models/yolo11/}
+Ultralytics (2024)
 
 \bibitem{worldbank2018}
 Kaza, S., Yao, L., Bhada-Tata, P., Van Woerden, F.:
 What a Waste 2.0: A Global Snapshot of Solid Waste Management to 2050.
-World Bank Group, Washington DC (2018).
-\url{https://doi.org/10.1596/978-1-4648-1329-0}
+World Bank Group, Washington DC (2018)
 
 \bibitem{convowaste2023}
 Nafiz, M.S., Das, S.S., Morol, M.K., Juabir, A.A., Nandi, D.:
 ConvoWaste: An automatic waste segregation machine using deep learning.
-In: Proceedings of the International Conference on Research in
-Engineering, Science and Technology (ICREST) (2023).
-\url{https://doi.org/10.48550/arXiv.2302.02976}
+In: Proceedings of ICREST (2023)
 
 \bibitem{ssd_mobilenet2021}
 Koganti, S.K., Purnima, G., Bhavana, P., Raghava, Y.V., R., Resmi:
 Deep learning based automated waste segregation system based on
 degradability.
-In: 2021 Second International Conference on Electronics and Sustainable
-Communication Systems (ICESC), pp.~1953--1956 (2021).
-\url{https://doi.org/10.1109/icesc51422.2021.9532837}
+In: 2021 ICESC, pp.~1953--1956 (2021)
 
 \bibitem{autoclassify2017}
 Sudha, S., Vidhyalakshmi, M., Pavithra, K., Sangeetha, K., Swadhikar, V.:
 An automatic classification method for environment-friendly waste
 segregation using deep learning.
-In: 2016 International Conference on Advanced Communication Control and
-Computing Technologies (ICACCCT) (2016).
-\url{https://ieeexplore.ieee.org/document/7801215/}
+In: 2016 ICACCCT (2016)
 
 \bibitem{iot_ai2024}
 Alourani, A., Ashraf, M.U., Aloraini, M.:
 Smart waste management and classification system using advanced
 {IoT} and {AI} technologies.
-PeerJ Computer Science \textbf{11}, e2777 (2025).
-\url{https://doi.org/10.7717/peerj-cs.2777}
+PeerJ Computer Science \textbf{11}, e2777 (2025)
 
 \bibitem{systematic_review2025}
 Noor, R.M., Hijazi, M.S., Ahmedy, I., Ismail, N.M., Daud, S.:
 A systematic review of artificial intelligence-based techniques
 for solid waste management.
-Sensors \textbf{25}(10), 3181 (2025).
-\url{https://doi.org/10.3390/s25103181}
+Sensors \textbf{25}(10), 3181 (2025)
 
 \bibitem{yolo_ec}
 Fan, J., Cui, L., Fei, S.:
 Waste detection system based on data augmentation and {YOLO\_EC}.
-Sensors \textbf{23}(7), 3646 (2023).
-\url{https://doi.org/10.3390/s23073646}
+Sensors \textbf{23}(7), 3646 (2023)
 
 \bibitem{ecodetect}
 Liu, S., Chen, R., Ye, M., Luo, J., Yang, D., Dai, M.:
 {EcoDetect-YOLO}: A lightweight, high-generalisation methodology for
 real-time detection of domestic waste exposure in intricate
 environmental landscapes.
-Sensors \textbf{24}(14), 4666 (2024).
-\url{https://doi.org/10.3390/s24144666}
+Sensors \textbf{24}(14), 4666 (2024)
 
 \bibitem{tan2020efficientdet}
 Tan, M., Pang, R., Le, Q.V.:
 EfficientDet: Scalable and efficient object detection.
-In: Proceedings of the IEEE/CVF Conference on Computer Vision
-and Pattern Recognition (CVPR), pp.~10781--10790 (2020).
-\url{https://doi.org/10.1109/CVPR42600.2020.01079}
+In: CVPR, pp.~10781--10790 (2020)
 
 \bibitem{woo2018cbam}
 Woo, S., Park, J., Lee, J.Y., Kweon, I.S.:
 CBAM: Convolutional block attention module.
-In: Proceedings of the European Conference on Computer Vision
-(ECCV), pp.~3--19 (2018).
-\url{https://doi.org/10.1007/978-3-030-01234-2_1}
+In: ECCV, pp.~3--19 (2018)
 
 \bibitem{wiou2023}
 Tong, Z., Chen, Y., Xu, Z., Yu, R.:
 Wise-{IoU}: Bounding box regression loss with dynamic focusing mechanism.
-arXiv preprint arXiv:2301.10051 (2023).
-\url{https://doi.org/10.48550/arXiv.2301.10051}
+arXiv:2301.10051 (2023)
 
 \bibitem{springer_survey2024}
 Arthur, M.P., Shoba, S., Pandey, A.:
 A survey of smart dustbin systems using the {IoT} and deep learning.
-Artificial Intelligence Review \textbf{57} (2024).
-\url{https://doi.org/10.1007/s10462-023-10646-6}
+Artificial Intelligence Review \textbf{57} (2024)
 
 \bibitem{dai2017deformable}
 Dai, J., Qi, H., Xiong, Y., Li, Y., Zhang, G., Hu, H., Wei, Y.:
 Deformable convolutional networks.
-In: Proceedings of the IEEE International Conference on Computer
-Vision (ICCV), pp.~764--773 (2017).
-\url{https://doi.org/10.1109/ICCV.2017.89}
+In: ICCV, pp.~764--773 (2017)
 
 \bibitem{loshchilov2019adamw}
 Loshchilov, I., Hutter, F.:
 Decoupled weight decay regularization.
-In: International Conference on Learning Representations (ICLR) (2019).
-\url{https://openreview.net/forum?id=Bkg6RiCqY7}
+In: ICLR (2019)
 
 \end{thebibliography}
 

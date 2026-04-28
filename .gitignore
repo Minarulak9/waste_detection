@@ -93,3 +93,5 @@ desktop.ini
 *~
 .vscode/
 .idea/
+
+# streamlit run demo_app.py
