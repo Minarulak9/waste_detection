@@ -75,16 +75,17 @@ YOLO11s object detection architecture. Our approach incorporates
 a Bidirectional Feature Pyramid Network (BiFPN) neck for improved
 multi-scale feature fusion and a Wise-IoU (WIoU) loss function that
 dynamically focuses on geometrically challenging bounding boxes.
-Through systematic ablation experiments on the WasteManagement-2
-dataset of 10,175 augmented images, we demonstrate that targeted
-data augmentation yields the most significant performance improvement
-(+15.0\% mAP@0.5), while BiFPN fusion further enhances multi-scale
-feature representation. Our final model achieves \textbf{94.39\%}
+Through systematic ablation experiments on our custom-collected
+\textbf{WasteManagement-2} dataset --- 3,000 manually annotated
+real-world images augmented to 10,175 training images --- we demonstrate
+that targeted data augmentation yields the most significant performance
+improvement (+15.0\% mAP@0.5), while BiFPN fusion further enhances
+multi-scale feature representation. Our final model achieves \textbf{94.39\%}
 mAP@0.5 on the validation set and \textbf{85.46\%} mAP@0.5 on the
-held-out test set, at an inference speed of \textbf{4.0\,ms} per
-image on an NVIDIA L40S GPU. Ablation studies reveal diminishing
-returns from architectural complexity beyond BiFPN, guiding a
-principled design toward a compact yet high-performing system.
+held-out test set, at an inference speed of \textbf{4.0\,ms} per image.
+Ablation studies reveal diminishing returns from architectural complexity
+beyond BiFPN, guiding a principled design toward a compact yet
+high-performing system.
 
 \keywords{Waste Detection \and YOLO11 \and BiFPN \and
           WIoU Loss \and Object Detection \and Deep Learning \and
@@ -138,8 +139,8 @@ In this work, we make the following \textbf{contributions}:
         outweighing architectural complexity gains.
   \item We release the \textbf{WasteManagement-2} dataset — 3,000
         manually annotated real-world images across mixed indoor and
-        outdoor environments — under CC BY 4.0 as a public benchmark
-        for binary waste detection research.
+        outdoor environments — as a public benchmark for binary waste
+        detection research.
   \item We provide a \textbf{fully deployable real-time demo
         application} with webcam support, directly addressing the
         absence of deployment-ready open systems identified as a gap
@@ -243,29 +244,15 @@ Liu et al.~\cite{ecodetect}            & Custom domestic     & Detection      & 
 \end{tabular}}
 \end{table}
 
-\subsection{Research Gaps}
-
-A 2025 systematic review analysing 97 studies~\cite{systematic_review2025}
-found that deep learning-based systems consistently outperform
-traditional computer vision approaches, with YOLO-family detectors
-leading in real-time deployment. A parallel survey of 45 smart dustbin
-implementations~\cite{springer_survey2024} independently recommends
-YOLO-family architectures as the current state-of-the-art for
-camera-based intelligent waste systems. Despite this progress, key
-gaps remain: (i) most systems evaluate on controlled, single-item
-datasets; (ii) systematic ablation studies isolating individual
-architectural contributions are rare; (iii) few works rigorously
-compare augmentation strategies against architectural innovations.
-This work directly addresses these gaps.
-
 % ============================================================
 \section{Proposed Methodology}
 \label{sec:method}
 % ============================================================
 
-\subsection{Dataset}
+\subsection{Dataset: WasteManagement-2}
 
-We constructed a custom waste image dataset comprising \textbf{3,000
+We constructed a custom waste image dataset, named
+\textbf{WasteManagement-2}, comprising \textbf{3,000
 raw images} across two classes: \textit{Bio} (biodegradable organic
 waste) and \textit{Non-Bio} (non-biodegradable waste including
 plastics, metals, and glass). Images were collected through a
@@ -318,7 +305,7 @@ Test       & 299    & 267    & 255    & 522    \\
 \end{tabular}
 \end{table}
 
-\subsection{Base Architecture: YOLO11s}
+\subsection{Overall Architecture}
 
 We adopt \textbf{YOLO11s}~\cite{yolo11} (small variant) as our
 base detector, selected through preliminary comparisons against
@@ -329,8 +316,26 @@ extraction capacity. The fused model contains 101 layers,
 19.2\,MB—compact for deployment on standard GPU-equipped hardware,
 with potential for further optimisation toward edge deployment.
 
-\subsection{BiFPN Neck}
+The complete proposed system is illustrated in
+Fig.~\ref{fig:architecture}. An RGB input image ($640\times640\times3$)
+is processed through the YOLO11s backbone, producing multi-scale
+feature maps P3, P4, and P5. These are fused bidirectionally by the
+BiFPN neck and passed to an anchor-free detection head that predicts
+class labels, confidence scores, and bounding boxes, optimised with
+WIoU loss.
 
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=\textwidth]{architecture_diagram.png}
+  \caption{Proposed architecture: YOLO11s backbone with BiFPN neck
+           and WIoU v3-optimised anchor-free detection head for
+           real-time binary waste detection.}
+  \label{fig:architecture}
+\end{figure}
+
+\subsection{Architectural Components}
+
+\textbf{BiFPN Neck.}
 Standard Feature Pyramid Networks (FPN) fuse features in a single
 top-down direction, limiting their ability to propagate information
 across scales. We replace the standard neck with a
@@ -349,13 +354,11 @@ via ReLU and $\varepsilon = 10^{-4}$ ensures numerical stability.
 We configure BiFPN with $\text{channels}=256$ and 2 fusion
 iterations, operating on feature maps P3 ($80\times80$),
 P4 ($40\times40$), and P5 ($20\times20$).
-
 In the context of waste classification, BiFPN provides richer
 representations of both large items (bins, bags) and small objects
 (bottle caps, wrappers), which appear at different pyramid scales.
 
-\subsection{Wise-IoU Loss v3 (WIoU v3)}
-
+\textbf{Wise-IoU Loss v3 (WIoU v3).}
 Standard IoU-based losses treat all bounding box predictions
 equally, giving the same gradient weight to easy and hard examples.
 We adopt \textbf{Wise-IoU v3 (WIoU v3)}~\cite{wiou2023}, the
@@ -379,28 +382,20 @@ training. For waste objects with irregular, partially occluded
 shapes, this mechanism provides more informative gradient signals
 than standard IoU loss.
 
-\subsection{Overall Architecture}
+% ============================================================
+\section{Experiments and Results}
+\label{sec:experiments}
+% ============================================================
 
-The complete proposed system is illustrated in
-Fig.~\ref{fig:architecture}. An RGB input image ($640\times640\times3$)
-is processed through the YOLO11s backbone, producing multi-scale
-feature maps P3, P4, and P5. These are fused bidirectionally by the
-BiFPN neck and passed to an anchor-free detection head that predicts
-class labels, confidence scores, and bounding boxes, optimised with
-WIoU loss.
 
-\begin{figure}[H]
-  \centering
-  \includegraphics[width=\textwidth]{architecture_diagram.png}
-  \caption{Proposed architecture: YOLO11s backbone with BiFPN neck
-           and WIoU v3-optimised anchor-free detection head for
-           real-time binary waste detection.}
-  \label{fig:architecture}
-\end{figure}
+\subsection{Evaluation Metrics}
 
-\subsection{Training Configuration}
-
-All experiments were conducted on an NVIDIA L40S GPU (46\,GB VRAM).
+We evaluate all models using standard COCO detection metrics:
+\textbf{mAP@0.5}, \textbf{mAP@0.5:0.95}, \textbf{Precision} (P),
+\textbf{Recall} (R), and GPU inference speed in milliseconds per image.
+Ablation comparisons use the 300-image validation set (356 instances);
+final model performance is additionally reported on the held-out 299-image
+test set (522 instances). All experiments were conducted on an NVIDIA L40S GPU (46\,GB VRAM).
 The final model training configuration is summarised in
 Table~\ref{tab:training}.
 
@@ -429,21 +424,97 @@ Total training time    & 3.102 hours \\
 \end{tabular}
 \end{table}
 
-% ============================================================
-\section{Experiments and Results}
-\label{sec:experiments}
-% ============================================================
+\subsection{Qualitative Detection Results}
 
-\subsection{Evaluation Metrics}
+Table~\ref{tab:final} presents the per-class evaluation of the final model
+on both the validation and held-out test sets. The model achieves
+\textbf{94.39\% mAP@0.5} on the validation set with strong per-class
+balance (Bio: 93.62\%, Non-Bio: 95.17\%), and \textbf{85.46\% mAP@0.5}
+on the test set at \textbf{4.0\,ms} inference per image. The 8.93\%
+val-to-test gap is attributed to higher test-set density (1.74 vs.\
+1.19 instances/image) and greater Bio class visual variability.
 
-We evaluate all models using standard COCO detection metrics:
-\textbf{mAP@0.5} (mean Average Precision at IoU threshold 0.50),
-\textbf{mAP@0.5:0.95} (mean AP averaged over IoU thresholds
-0.50--0.95 at step 0.05), \textbf{Precision} (P), \textbf{Recall}
-(R), and GPU inference speed in milliseconds per image. Ablation
-comparisons use the 300-image validation set (356 instances). Final
-model performance is additionally evaluated on the held-out 299-image
-test set (522 instances) to provide an unbiased performance estimate.
+\begin{table}[H]
+\centering
+\caption{Final Model Performance — YOLO11s + BiFPN + WIoU (100 Epochs)}
+\label{tab:final}
+\setlength{\tabcolsep}{4pt}
+\begin{tabular}{lcccc|cc}
+\toprule
+ & \multicolumn{4}{c|}{\textbf{Validation Set (300 images)}} &
+   \multicolumn{2}{c}{\textbf{Test Set (299 images)}} \\
+\textbf{Class} & \textbf{P} & \textbf{R} & \textbf{AP@0.5} &
+\textbf{AP@0.5:0.95} & \textbf{AP@0.5} & \textbf{AP@0.5:0.95} \\
+\midrule
+Bio     & 0.8960 & 0.9195 & 0.9362 & 0.8310 & 0.7745 & $-$ \\
+Non-Bio & 0.9432 & 0.9096 & 0.9517 & 0.8260 & 0.9348 & $-$ \\
+\midrule
+\textbf{Overall} & \textbf{0.9196} & \textbf{0.9145} &
+\textbf{0.9439} & \textbf{0.8592} & \textbf{0.8546} & \textbf{0.7709} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Figure~\ref{fig:qualitative} shows representative detection outputs
+across four real-world scenarios. The model correctly localises and
+classifies waste items across varying scales, backgrounds, and occlusion
+levels, demonstrating practical robustness beyond aggregate metrics.
+
+\begin{figure}[htbp]
+\centering
+\begin{subfigure}[b]{0.47\textwidth}
+  \includegraphics[width=\textwidth]{plastic_bag.png}
+  \caption{Non-Bio: plastic bag detected}
+\end{subfigure}
+\hfill
+\begin{subfigure}[b]{0.47\textwidth}
+  \includegraphics[width=\textwidth]{organic.png}
+  \caption{Bio: organic waste detected}
+\end{subfigure}
+\\[0.5em]
+\begin{subfigure}[b]{0.47\textwidth}
+  \includegraphics[width=\textwidth]{multiple_items.png}
+  \caption{Multiple items: Bio + Non-Bio co-detected}
+\end{subfigure}
+\hfill
+\begin{subfigure}[b]{0.47\textwidth}
+  \includegraphics[width=\textwidth]{cluttered_items.png}
+  \caption{Cluttered scene: dense multi-item detection}
+\end{subfigure}
+\caption{Detection results from the final YOLO11s + BiFPN + WIoU v3
+         model. Green boxes: \textit{Bio}; red boxes: \textit{Non-Bio}.
+         Confidence scores shown above each box.}
+\label{fig:qualitative}
+\end{figure}
+
+\subsection{Comparison with Baseline Models}
+
+Table~\ref{tab:comparison} compares our final model against standard
+YOLO baseline variants trained under identical conditions on the
+same dataset.
+
+\begin{table}[H]
+\centering
+\caption{Comparison Across YOLO Variants (same dataset, 50-epoch baselines)}
+\label{tab:comparison}
+\begin{tabular}{lccc}
+\toprule
+\textbf{Model} & \textbf{mAP@0.5} & \textbf{Precision} & \textbf{Recall} \\
+\midrule
+YOLOv8n                         & 0.7631 & $-$ & $-$    \\
+YOLO11n                        & 0.7566 & $-$ & 0.6646 \\
+YOLO11s                        & 0.7565 & $-$ & 0.7132 \\
+YOLO11s + Augmentation         & 0.9060 & $-$ & 0.8400 \\
+\midrule
+\textbf{Ours (YOLO11s + BiFPN + WIoU, 100ep)} &
+\textbf{0.9439} & \textbf{0.9196} & \textbf{0.9145} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Our final model outperforms all baseline variants by a substantial
+margin, demonstrating the combined benefit of augmentation, BiFPN
+feature fusion, WIoU loss, and extended training.
 
 \subsection{Ablation Study}
 
@@ -500,179 +571,25 @@ presented in Table~\ref{tab:ablation}.
   \item \textbf{Finding 4 — Architecture vs.\ training-time effects are
         separable.} Step 7 evaluates the final architecture (BiFPN +
         WIoU, CBAM removed) at 50 epochs, yielding 88.77\% mAP@0.5.
-        This is below Step 5 (91.59\%), confirming that the CBAM removal
-        trades short-term performance for lower initialisation overhead.
-        Step 8 trains the same architecture to 100 epochs, recovering and
-        surpassing all 50-epoch baselines at 94.39\%.
+        Step 8 trains the same architecture to 100 epochs, recovering
+        and surpassing all 50-epoch baselines at 94.39\%.
 
   \item \textbf{Finding 5 — Extended training contributes $+5.62\%$
         mAP@0.5.} The gain from Step 7 (88.77\%, 50 ep) to Step 8
-        (94.39\%, 100 ep) isolates the training-time contribution,
-        confirming the BiFPN + WIoU architecture continues improving
-        without overfitting across 100 epochs.
+        (94.39\%, 100 ep) confirms the BiFPN + WIoU architecture
+        continues improving without overfitting across 100 epochs.
 \end{itemize}
 
 \noindent\textbf{CBAM exclusion rationale.}
 CBAM degraded performance when first introduced (Step 4: 88.05\%,
-$-2.55\%$ vs.\ augmented baseline) and, while it partially recovered
-when combined with BiFPN (Step 5: 91.59\%), it was ultimately
-excluded from the final model for two reasons. First, waste images
-exhibit high intra-class texture variability — organic matter,
-soiled packaging, and mixed debris present irregular, noisy feature
-patterns — making channel and spatial suppression by attention
-potentially counterproductive. Second, CBAM introduces additional
-initialisation overhead when loading from COCO pretrained weights,
-creating a feature distribution mismatch at the attention gates that
-requires extended training to overcome; within a 50-epoch budget
-this manifests as slower convergence. Removing CBAM and instead
-extending training to 100 epochs yields a net gain of $+2.80\%$
-over the best CBAM-included model, confirming that the initialisation
-overhead was the binding constraint, not the attention mechanism's
-representational capacity per se.
-
-\subsection{Final Model Performance}
-
-Table~\ref{tab:final} presents the per-class evaluation of our
-final model on both the validation set (used for architecture
-selection) and the held-out test set (independent evaluation).
-
-\begin{table}[H]
-\centering
-\caption{Final Model Performance — YOLO11s + BiFPN + WIoU (100 Epochs)}
-\label{tab:final}
-\setlength{\tabcolsep}{4pt}
-\begin{tabular}{lcccc|cc}
-\toprule
- & \multicolumn{4}{c|}{\textbf{Validation Set (300 images)}} &
-   \multicolumn{2}{c}{\textbf{Test Set (299 images)}} \\
-\textbf{Class} & \textbf{P} & \textbf{R} & \textbf{AP@0.5} &
-\textbf{AP@0.5:0.95} & \textbf{AP@0.5} & \textbf{AP@0.5:0.95} \\
-\midrule
-Bio     & 0.8960 & 0.9195 & 0.9362 & 0.8310 & 0.7745 & $-$ \\
-Non-Bio & 0.9432 & 0.9096 & 0.9517 & 0.8260 & 0.9348 & $-$ \\
-\midrule
-\textbf{Overall} & \textbf{0.9196} & \textbf{0.9145} &
-\textbf{0.9439} & \textbf{0.8592} & \textbf{0.8546} & \textbf{0.7709} \\
-\bottomrule
-\end{tabular}
-\end{table}
-
-On the validation set the model achieves \textbf{94.39\% mAP@0.5}
-with strong per-class balance (Bio: 93.62\%, Non-Bio: 95.17\%).
-On the held-out test set — which is more densely annotated
-(522 instances across 299 images vs.\ 356 in validation) — the model
-achieves \textbf{85.46\% mAP@0.5}. The Non-Bio class maintains high
-test accuracy (93.48\%), while the Bio class shows greater
-sensitivity to the harder test distribution (77.45\%), likely due to
-the higher visual variability of organic waste under real-world
-conditions. GPU inference runs at \textbf{4.0\,ms per image}
-($\approx$250\,FPS on the NVIDIA L40S), well within the 50\,ms
-real-time threshold. All inference benchmarks were obtained on the
-L40S training GPU; deployment on lower-power hardware would require
-additional profiling.
-
-\subsection{Confusion Matrix and Precision-Recall Analysis}
-
-Figure~\ref{fig:confusion} shows the normalised confusion matrix on the
-validation set. Both classes achieve high true-positive rates, with
-minimal cross-class confusion. The slightly higher false-positive rate
-for the Bio class is consistent with the greater intra-class visual
-variability of organic waste items.
-
-\begin{figure}[H]
-  \centering
-  \includegraphics[width=0.72\textwidth]{confusion_matrix_normalized.png}
-  \caption{Normalised confusion matrix — final model on the 300-image
-           validation set. Rows are ground-truth classes; columns are
-           predicted classes.}
-  \label{fig:confusion}
-\end{figure}
-
-Figure~\ref{fig:pr} presents the per-class Precision-Recall curves.
-Both classes maintain high precision across a wide recall range,
-confirming reliable detections without excessive false positives even
-at aggressive confidence thresholds. The area under each curve
-corresponds directly to the reported AP@0.5 values: 93.62\% (Bio) and
-95.17\% (Non-Bio).
-
-\begin{figure}[H]
-  \centering
-  \includegraphics[width=0.82\textwidth]{BoxPR_curve.png}
-  \caption{Precision-Recall curves for Bio and Non-Bio classes.
-           mAP@0.5 = 94.39\% (overall), shown as the dashed line.}
-  \label{fig:pr}
-\end{figure}
-
-\subsection{Qualitative Detection Results}
-
-Figure~\ref{fig:qualitative} shows representative detection outputs
-from the final model across four distinct scenarios: isolated
-Non-Bio waste, isolated Bio waste, a mixed-class scene, and a
-densely cluttered multi-item image. The model correctly localises
-and classifies waste items across varying scales, backgrounds, and
-occlusion levels, demonstrating practical robustness beyond
-aggregate metric performance.
-
-% ── Replace the four \rule placeholders below with actual detection
-%    screenshots once captured from the demo application.
-%    Recommended filenames (place in same folder as this .tex file):
-%    qual_nonbio.jpg  |  qual_bio.jpg  |  qual_mixed.jpg  |  qual_multi.jpg
-\begin{figure}[htbp]
-\centering
-\begin{subfigure}[b]{0.47\textwidth}
-  \includegraphics[width=\textwidth]{plastic_bag.png}
-  \caption{Non-Bio: plastic bag detected}
-\end{subfigure}
-\hfill
-\begin{subfigure}[b]{0.47\textwidth}
-  \includegraphics[width=\textwidth]{organic.png}
-  \caption{Bio: organic waste detected}
-\end{subfigure}
-\\[0.5em]
-\begin{subfigure}[b]{0.47\textwidth}
-  \includegraphics[width=\textwidth]{multiple_items.png}
-  \caption{Multiple items: Bio + Non-Bio co-detected}
-\end{subfigure}
-\hfill
-\begin{subfigure}[b]{0.47\textwidth}
-  \includegraphics[width=\textwidth]{cluttered_items.png}
-  \caption{Cluttered scene: dense multi-item detection}
-\end{subfigure}
-\caption{Qualitative detection results from the final YOLO11s + BiFPN
-         + WIoU v3 model across four real-world scenarios.
-         Green boxes indicate \textit{Bio}; red boxes indicate
-         \textit{Non-Bio}. Confidence scores shown above each box.}
-\label{fig:qualitative}
-\end{figure}
-
-\subsection{Comparison with Baseline Models}
-
-Table~\ref{tab:comparison} compares our final model against standard
-YOLO baseline variants trained under identical conditions on the
-same dataset.
-
-\begin{table}[H]
-\centering
-\caption{Comparison Across YOLO Variants (same dataset, 50-epoch baselines)}
-\label{tab:comparison}
-\begin{tabular}{lccc}
-\toprule
-\textbf{Model} & \textbf{mAP@0.5} & \textbf{Precision} & \textbf{Recall} \\
-\midrule
-YOLOv8n                         & 0.7631 & $-$ & $-$    \\
-YOLO11n                        & 0.7566 & $-$ & 0.6646 \\
-YOLO11s                        & 0.7565 & $-$ & 0.7132 \\
-YOLO11s + Augmentation         & 0.9060 & $-$ & 0.8400 \\
-\midrule
-\textbf{Ours (YOLO11s + BiFPN + WIoU, 100ep)} &
-\textbf{0.9439} & \textbf{0.9196} & \textbf{0.9145} \\
-\bottomrule
-\end{tabular}
-\end{table}
-
-Our final model outperforms all baseline variants by a substantial
-margin, demonstrating the combined benefit of augmentation, BiFPN
-feature fusion, WIoU loss, and extended training.
+$-2.55\%$ vs.\ augmented baseline) and was ultimately excluded for two
+reasons: (i) waste images exhibit high intra-class texture variability,
+making channel and spatial suppression potentially counterproductive;
+(ii) CBAM introduces initialisation overhead from COCO pretrained
+weights, manifesting as slower convergence within a 50-epoch budget.
+Removing CBAM and extending training to 100 epochs yields a net gain
+of $+2.80\%$ over the best CBAM-included model (Step 5: 91.59\%
+$\to$ Step 8: 94.39\%).
 
 % ============================================================
 \section{Conclusion}

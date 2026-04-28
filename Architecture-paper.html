@@ -1,0 +1,337 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>Fig. — System Architecture (Paper Style)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Source+Sans+3:wght@400;500;600;700&family=Source+Serif+4:wght@400;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  html, body { margin:0; padding:0; background:#ffffff; color:#111; font-family:'Source Sans 3', system-ui, sans-serif; }
+  .page { width: 1600px; margin: 0 auto; padding: 40px 0 30px; background:#fff; }
+  svg { display:block; margin: 0 auto; }
+  .caption {
+    text-align:center; font-family:'Source Serif 4', serif;
+    margin-top: 14px; font-size: 14px; color:#222;
+  }
+  .caption b { font-weight: 700; }
+</style>
+</head>
+<body>
+<div class="page" data-screen-label="Paper Architecture">
+
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1500 760" width="1500" height="760" font-family="'Source Sans 3', system-ui, sans-serif">
+  <defs>
+    <!-- arrow markers -->
+    <marker id="ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#222"/>
+    </marker>
+    <marker id="ar-thin" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#444"/>
+    </marker>
+
+    <!-- pastel fills -->
+    <linearGradient id="fInput" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#fef9c3"/><stop offset="100%" stop-color="#fde68a"/>
+    </linearGradient>
+    <linearGradient id="fBack" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#ede9fe"/><stop offset="100%" stop-color="#ddd6fe"/>
+    </linearGradient>
+    <linearGradient id="fNeck" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#d1fae5"/><stop offset="100%" stop-color="#a7f3d0"/>
+    </linearGradient>
+    <linearGradient id="fHead" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#fef3c7"/><stop offset="100%" stop-color="#fde68a"/>
+    </linearGradient>
+    <linearGradient id="fBio" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#dcfce7"/><stop offset="100%" stop-color="#bbf7d0"/>
+    </linearGradient>
+    <linearGradient id="fNon" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#fee2e2"/><stop offset="100%" stop-color="#fecaca"/>
+    </linearGradient>
+    <linearGradient id="fSub" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#f8fafc"/><stop offset="100%" stop-color="#e2e8f0"/>
+    </linearGradient>
+
+    <style>
+      .lbl { font-size: 13px; fill: #1f2937; font-weight: 600; }
+      .sm  { font-size: 11px; fill: #4b5563; font-family: 'JetBrains Mono', monospace; }
+      .xs  { font-size: 10px; fill: #6b7280; font-family: 'JetBrains Mono', monospace; }
+      .stage-cap { font-size: 12px; fill: #111; font-weight: 700; font-family:'Source Serif 4', serif; font-style: italic; }
+      .box { stroke: #374151; stroke-width: 1.2; }
+      .sub { stroke: #6b7280; stroke-width: 1; }
+      .wire { stroke: #222; stroke-width: 1.4; fill: none; }
+      .wire-thin { stroke: #555; stroke-width: 1; fill: none; }
+      .dashed { stroke: #6b7280; stroke-width: 1; fill: none; stroke-dasharray: 4 3; }
+    </style>
+  </defs>
+
+  <!-- ============================================================ -->
+  <!-- STEP CAPTIONS (top) -->
+  <!-- ============================================================ -->
+  <!-- Step 1 -->
+  <text class="stage-cap" x="380" y="34" text-anchor="middle">Step 1: Backbone — multi-scale feature extraction</text>
+  <path d="M 100,46 C 100,40 110,40 110,46 L 660,46 C 660,40 660,46 660,52 L 660,46 C 660,40 650,40 650,46" class="dashed"/>
+  <!-- nicer brace under caption -->
+  <path d="M 100,52 C 100,46 110,46 110,52 H 380 V 46 H 380 V 52 H 660 C 660,46 650,46 650,52" class="dashed" fill="none"/>
+
+  <!-- Step 2 -->
+  <text class="stage-cap" x="900" y="34" text-anchor="middle">Step 2: BiFPN Neck — bidirectional fusion</text>
+  <path d="M 700,52 H 1100" class="dashed"/>
+
+  <!-- Step 3 -->
+  <text class="stage-cap" x="1280" y="34" text-anchor="middle">Step 3: Detection &amp; Loss</text>
+  <path d="M 1130,52 H 1430" class="dashed"/>
+
+  <!-- ============================================================ -->
+  <!-- INPUT (Target Image) -->
+  <!-- ============================================================ -->
+  <g transform="translate(40,300)">
+    <!-- document-style icon -->
+    <path d="M 0,0 L 80,0 L 100,22 L 100,140 L 0,140 Z" fill="url(#fInput)" class="box"/>
+    <path d="M 80,0 L 80,22 L 100,22" class="box" fill="none"/>
+    <text x="50" y="76" text-anchor="middle" class="lbl" font-size="14">Input</text>
+    <text x="50" y="94" text-anchor="middle" class="lbl" font-size="14">Image</text>
+    <text x="50" y="116" text-anchor="middle" class="sm">640×640×3</text>
+  </g>
+
+  <!-- arrow input -> backbone trunk -->
+  <path d="M 142,370 H 200" class="wire" marker-end="url(#ar)"/>
+
+  <!-- ============================================================ -->
+  <!-- BACKBONE — vertical stack of 5 stages -->
+  <!-- ============================================================ -->
+  <g transform="translate(200,90)">
+    <!-- enclosing rounded rect -->
+    <rect x="0" y="0" width="240" height="560" rx="10" fill="url(#fBack)" class="box"/>
+    <text x="120" y="30" text-anchor="middle" class="lbl" font-size="14">YOLO11s Backbone</text>
+    <text x="120" y="48" text-anchor="middle" class="sm">Conv · C3k2 · SPPF · C2PSA</text>
+
+    <!-- stages -->
+    <g class="lbl">
+      <g transform="translate(20,68)">
+        <rect width="200" height="46" rx="6" fill="#fff" class="sub"/>
+        <text x="100" y="22" text-anchor="middle">Stage 1 — Conv k3 s2</text>
+        <text x="100" y="38" text-anchor="middle" class="sm">stride 2 · 64c</text>
+      </g>
+      <g transform="translate(20,124)">
+        <rect width="200" height="46" rx="6" fill="#fff" class="sub"/>
+        <text x="100" y="22" text-anchor="middle">Stage 2 — Conv + C3k2</text>
+        <text x="100" y="38" text-anchor="middle" class="sm">stride 4 · 128c</text>
+      </g>
+      <g transform="translate(20,180)">
+        <rect width="200" height="46" rx="6" fill="#fff" class="sub" stroke="#1d4ed8" stroke-width="1.4"/>
+        <text x="100" y="22" text-anchor="middle">Stage 3 — C3k2 ×2</text>
+        <text x="100" y="38" text-anchor="middle" class="sm">P3 · 80² · 128c</text>
+      </g>
+      <g transform="translate(20,236)">
+        <rect width="200" height="46" rx="6" fill="#fff" class="sub" stroke="#1d4ed8" stroke-width="1.4"/>
+        <text x="100" y="22" text-anchor="middle">Stage 4 — C3k2 ×2</text>
+        <text x="100" y="38" text-anchor="middle" class="sm">P4 · 40² · 256c</text>
+      </g>
+      <g transform="translate(20,292)">
+        <rect width="200" height="46" rx="6" fill="#fff" class="sub" stroke="#1d4ed8" stroke-width="1.4"/>
+        <text x="100" y="22" text-anchor="middle">Stage 5 — SPPF + C2PSA</text>
+        <text x="100" y="38" text-anchor="middle" class="sm">P5 · 20² · 512c</text>
+      </g>
+    </g>
+
+    <!-- internal dashed flow -->
+    <g class="dashed">
+      <line x1="120" y1="114" x2="120" y2="124"/>
+      <line x1="120" y1="170" x2="120" y2="180"/>
+      <line x1="120" y1="226" x2="120" y2="236"/>
+      <line x1="120" y1="282" x2="120" y2="292"/>
+    </g>
+
+    <!-- summary footer -->
+    <text x="120" y="540" text-anchor="middle" class="xs">9.4 M params · SiLU · BatchNorm</text>
+  </g>
+
+  <!-- ============================================================ -->
+  <!-- BIFPN — three pyramid levels with tap arrows from backbone -->
+  <!-- ============================================================ -->
+  <g transform="translate(620,90)">
+    <rect x="0" y="0" width="320" height="560" rx="10" fill="url(#fNeck)" class="box"/>
+    <text x="160" y="30" text-anchor="middle" class="lbl" font-size="14">BiFPN Neck</text>
+    <text x="160" y="48" text-anchor="middle" class="sm">Bidirectional Feature Pyramid · 256c · 2 iters</text>
+
+    <!-- 3 pyramid nodes (top P3, mid P4, bottom P5) and intermediate fused nodes -->
+    <!-- Layout: input column at left (x=20) -> intermediate column (x=140) -> output column (x=240) -->
+
+    <!-- INPUT NODES (incoming from backbone) -->
+    <g>
+      <g transform="translate(20,180)">
+        <rect width="80" height="46" rx="6" fill="#fff" class="sub"/>
+        <text x="40" y="22" text-anchor="middle" class="lbl">P3ᵢₙ</text>
+        <text x="40" y="38" text-anchor="middle" class="sm">80²</text>
+      </g>
+      <g transform="translate(20,257)">
+        <rect width="80" height="46" rx="6" fill="#fff" class="sub"/>
+        <text x="40" y="22" text-anchor="middle" class="lbl">P4ᵢₙ</text>
+        <text x="40" y="38" text-anchor="middle" class="sm">40²</text>
+      </g>
+      <g transform="translate(20,334)">
+        <rect width="80" height="46" rx="6" fill="#fff" class="sub"/>
+        <text x="40" y="22" text-anchor="middle" class="lbl">P5ᵢₙ</text>
+        <text x="40" y="38" text-anchor="middle" class="sm">20²</text>
+      </g>
+    </g>
+
+    <!-- INTERMEDIATE NODES (top-down path, P4 only since P3/P5 are endpoints) -->
+    <g transform="translate(140,257)">
+      <rect width="60" height="46" rx="6" fill="#fff" class="sub"/>
+      <text x="30" y="22" text-anchor="middle" class="lbl">P4ₜ</text>
+      <text x="30" y="38" text-anchor="middle" class="xs">top-dn</text>
+    </g>
+
+    <!-- OUTPUT NODES (bottom-up path) -->
+    <g>
+      <g transform="translate(240,180)">
+        <rect width="60" height="46" rx="6" fill="#fff" class="sub" stroke="#047857" stroke-width="1.4"/>
+        <text x="30" y="22" text-anchor="middle" class="lbl">P3ₒᵤₜ</text>
+        <text x="30" y="38" text-anchor="middle" class="xs">256c</text>
+      </g>
+      <g transform="translate(240,257)">
+        <rect width="60" height="46" rx="6" fill="#fff" class="sub" stroke="#047857" stroke-width="1.4"/>
+        <text x="30" y="22" text-anchor="middle" class="lbl">P4ₒᵤₜ</text>
+        <text x="30" y="38" text-anchor="middle" class="xs">256c</text>
+      </g>
+      <g transform="translate(240,334)">
+        <rect width="60" height="46" rx="6" fill="#fff" class="sub" stroke="#047857" stroke-width="1.4"/>
+        <text x="30" y="22" text-anchor="middle" class="lbl">P5ₒᵤₜ</text>
+        <text x="30" y="38" text-anchor="middle" class="xs">256c</text>
+      </g>
+    </g>
+
+    <!-- BiFPN edges -->
+    <g class="wire-thin">
+      <!-- P5in -> P4t (top-down upsample) -->
+      <path d="M 100,357 C 120,357 120,280 140,280" marker-end="url(#ar-thin)"/>
+      <!-- P4in -> P4t -->
+      <path d="M 100,280 H 140" marker-end="url(#ar-thin)"/>
+      <!-- P4t -> P3out (top-down) -->
+      <path d="M 200,280 C 220,280 220,203 240,203" marker-end="url(#ar-thin)"/>
+      <!-- P3in -> P3out (skip) -->
+      <path d="M 100,203 H 240" marker-end="url(#ar-thin)"/>
+      <!-- P3out -> P4out (bottom-up) -->
+      <path d="M 270,226 C 270,250 270,250 270,257" marker-end="url(#ar-thin)"/>
+      <!-- P4t -> P4out (skip middle) -->
+      <path d="M 200,280 H 240" marker-end="url(#ar-thin)"/>
+      <!-- P4in -> P4out (long skip) -->
+      <path d="M 100,295 C 220,310 220,295 240,295" marker-end="url(#ar-thin)"/>
+      <!-- P4out -> P5out (bottom-up) -->
+      <path d="M 270,303 C 270,330 270,330 270,334" marker-end="url(#ar-thin)"/>
+      <!-- P5in -> P5out (skip) -->
+      <path d="M 100,357 H 240" marker-end="url(#ar-thin)"/>
+    </g>
+
+    <!-- fusion formula -->
+    <g transform="translate(20,440)">
+      <rect width="280" height="80" rx="6" fill="#fff" class="sub"/>
+      <text x="140" y="24" text-anchor="middle" class="lbl">Weighted Fusion</text>
+      <text x="140" y="48" text-anchor="middle" font-family="'JetBrains Mono', monospace" font-size="13" fill="#111">O = Σ (wᵢ · Iᵢ) / (Σ wᵢ + ε)</text>
+      <text x="140" y="68" text-anchor="middle" class="xs">learnable scale weights w₁, w₂, w₃</text>
+    </g>
+  </g>
+
+  <!-- ============================================================ -->
+  <!-- Backbone -> BiFPN tap arrows -->
+  <!-- ============================================================ -->
+  <g class="wire">
+    <path d="M 440,203 H 620" marker-end="url(#ar)"/>
+    <path d="M 440,259 H 620" marker-end="url(#ar)"/>
+    <path d="M 440,315 H 620" marker-end="url(#ar)"/>
+  </g>
+  <g class="xs" fill="#374151">
+    <text x="530" y="196" text-anchor="middle">P3 (s=8)</text>
+    <text x="530" y="252" text-anchor="middle">P4 (s=16)</text>
+    <text x="530" y="308" text-anchor="middle">P5 (s=32)</text>
+  </g>
+
+  <!-- ============================================================ -->
+  <!-- DETECTION HEAD -->
+  <!-- ============================================================ -->
+  <g transform="translate(990,90)">
+    <rect x="0" y="0" width="240" height="560" rx="10" fill="url(#fHead)" class="box"/>
+    <text x="120" y="30" text-anchor="middle" class="lbl" font-size="14">Detection Head</text>
+    <text x="120" y="48" text-anchor="middle" class="sm">decoupled · anchor-free · DFL</text>
+
+    <!-- Three scale heads -->
+    <g class="lbl">
+      <g transform="translate(20,80)">
+        <rect width="200" height="56" rx="6" fill="#fff" class="sub"/>
+        <text x="100" y="22" text-anchor="middle">Head — small</text>
+        <text x="100" y="40" text-anchor="middle" class="sm">P3 · cls + box + conf</text>
+      </g>
+      <g transform="translate(20,150)">
+        <rect width="200" height="56" rx="6" fill="#fff" class="sub"/>
+        <text x="100" y="22" text-anchor="middle">Head — medium</text>
+        <text x="100" y="40" text-anchor="middle" class="sm">P4 · cls + box + conf</text>
+      </g>
+      <g transform="translate(20,220)">
+        <rect width="200" height="56" rx="6" fill="#fff" class="sub"/>
+        <text x="100" y="22" text-anchor="middle">Head — large</text>
+        <text x="100" y="40" text-anchor="middle" class="sm">P5 · cls + box + conf</text>
+      </g>
+
+      <!-- Loss block -->
+      <g transform="translate(20,310)">
+        <rect width="200" height="80" rx="6" fill="#fff" class="sub" stroke="#b91c1c" stroke-width="1.4"/>
+        <text x="100" y="26" text-anchor="middle">WIoU Loss</text>
+        <text x="100" y="46" text-anchor="middle" class="sm">dynamic focusing</text>
+        <text x="100" y="62" text-anchor="middle" class="xs">on hard / low-quality boxes</text>
+      </g>
+
+      <!-- Decoded predictions -->
+      <g transform="translate(20,410)">
+        <rect width="200" height="80" rx="6" fill="#fff" class="sub"/>
+        <text x="100" y="26" text-anchor="middle">Decoded Outputs</text>
+        <text x="100" y="46" text-anchor="middle" class="sm">(class, conf, box)</text>
+        <text x="100" y="62" text-anchor="middle" class="xs">NMS · top-K filtering</text>
+      </g>
+    </g>
+
+    <!-- internal dashed wires head1/2/3 -> WIoU and -> Decoded -->
+    <g class="dashed">
+      <!-- <path d="M 120,136 V 310"/>
+      <path d="M 120,206 V 310"/>
+      <path d="M 120,276 V 310"/> -->
+      <line x1="120" y1="136" x2="120" y2="151"/>
+      <line x1="120" y1="205" x2="120" y2="220"/>
+      <line x1="120" y1="276" x2="120" y2="310"/>
+      <line x1="120" y1="390" x2="120" y2="410"/>
+    </g>
+  </g>
+
+  <!-- BiFPN -> Head arrows -->
+  <g class="wire">
+    <path d="M 940,203 C 970,203 970,108 990,108" marker-end="url(#ar)"/>
+    <path d="M 940,280 C 970,280 970,178 990,178" marker-end="url(#ar)"/>
+    <path d="M 940,357 C 970,357 970,248 990,248" marker-end="url(#ar)"/>
+  </g>
+
+  <!-- ============================================================ -->
+  <!-- OUTPUTS -->
+  <!-- ============================================================ -->
+  <g transform="translate(1280,250)">
+    <rect width="180" height="76" rx="8" fill="url(#fBio)" class="box" stroke="#15803d"/>
+    <text x="90" y="32" text-anchor="middle" class="lbl" font-size="15">Bio</text>
+    <text x="90" y="54" text-anchor="middle" class="sm">Biodegradable</text>
+  </g>
+  <g transform="translate(1280,380)">
+    <rect width="180" height="76" rx="8" fill="url(#fNon)" class="box" stroke="#b91c1c"/>
+    <text x="90" y="32" text-anchor="middle" class="lbl" font-size="15">Non-Bio</text>
+    <text x="90" y="54" text-anchor="middle" class="sm">Non-Biodegradable</text>
+  </g>
+
+  <!-- Head -> outputs -->
+  <g class="wire">
+    <path d="M 1230,370 C 1255,370 1255,288 1280,288" marker-end="url(#ar)"/>
+    <path d="M 1230,400 C 1255,400 1255,418 1280,418" marker-end="url(#ar)"/>
+  </g>
+</svg>
+
+</div>
+<script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script></body>
+</html>
