@@ -47,8 +47,9 @@
 \author{Minarul Hoque\inst{1} \and
         Rohan Dey\inst{1} \and
         Raktim Kumar\inst{1} \and
-        Ataur Rahaman Din\inst{1} \and
-        Rittwik Ghosh\inst{1} \and
+        Ataur Rahaman Ddin\inst{1} \and
+        Ritwik Ghosh\inst{1} \and
+        Arpan Maity\inst{1} \and
         Debdutta Pal\inst{1}}
 
 \authorrunning{Hoque et al.}
@@ -56,7 +57,7 @@
 \institute{Department of Computer Applications,\\
            Adamas University, Kolkata, West Bengal, India\\
            \email{\{minarul1.haque,rohan1.dey,ritwik2.ghosh\}@stu.adamasuniversity.ac.in}\\
-           \email{\{raktim1.kumar,ataur1.rahamanddin\}@stu.adamasuniversity.ac.in}\\
+           \email{\{raktim1.kumar,ataur1.rahamanddin,arpan1.maity\}@stu.adamasuniversity.ac.in}\\
            \email{debdutta.pal1@adamasuniversity.ac.in}\\
            \url{https://adamasuniversity.ac.in}}
 
@@ -96,26 +97,10 @@ high-performing system.
 \section{Introduction}
 % ============================================================
 
-Municipal solid waste (MSW) management is one of the most pressing
-environmental challenges of the twenty-first century. According to
-the World Bank, global waste generation is projected to increase to
-3.4 billion tonnes by 2050~\cite{worldbank2018}. Improper waste
-disposal contributes to greenhouse gas emissions, soil contamination,
-and public health hazards. Effective waste segregation at the point
-of disposal—separating biodegradable organic matter from
-non-biodegradable plastics, metals, and glass—is a critical first
-step toward sustainable waste management, enabling composting,
-recycling, and efficient landfill utilisation.
-
-Conventional manual waste sorting is labour-intensive, subject to
-human error (reported at over 20\% in uncontrolled
-environments~\cite{systematic_review2025}), and impractical at
-scale. Recent advances in deep learning, particularly in real-time
-object detection, offer a promising avenue for automating waste
-classification with high accuracy and minimal human intervention.
+Managing municipal solid waste (MSW) has emerged as one of the most pressing environmental challenges of our time, particularly given that according to the World Bank it is estimated that there will be an increase in the amount of global waste generated to 3.4 billion tonnes in 2050~\cite{worldbank2018}. If waste is not disposed of appropriately it can lead to an increase in all three greenhouse gas emissions (i.e., methane, carbon dioxide), soil contamination, and adverse effects to public health; thus properly segregating waste at source (i.e., separating biodegradable vs. non-biodegradable material) is fundamental to any sustainable waste management strategy and ultimately supports other longer term solutions such as composting and recycling and to improve landfill use. However, traditional manual sorting is labour-intensive, error-prone (with error rates exceeding 20\% in uncontrolled environments~\cite{systematic_review2025}), and difficult to scale. With recent progress in deep learning, especially real-time object detection, automated waste classification is emerging as a practical solution, offering high accuracy with minimal human intervention.
 
 Convolutional neural network (CNN)-based approaches and YOLO-family
-detectors have demonstrated strong performance in visual recognition
+detectors~\cite{redmon2016yolo} have demonstrated strong performance in visual recognition
 tasks, including waste identification~\cite{yolo_ec,ecodetect}.
 However, challenges specific to waste classification—including high
 intra-class visual variability, irregular object shapes, partial
@@ -134,9 +119,9 @@ In this work, we make the following \textbf{contributions}:
         mAP@0.5 on the validation set and \textbf{85.46\%} mAP@0.5
         on the held-out test set, with \textbf{4.0\,ms} GPU inference
         latency and a compact 19.2\,MB model size.
-  \item We provide empirical evidence that strategic data augmentation
-        is the dominant performance factor in waste detection tasks,
-        outweighing architectural complexity gains.
+  \item We provide empirical evidence that, in our experimental setting,
+        strategic data augmentation contributes the largest performance gain,
+        outweighing architectural complexity improvements.
   \item We release the \textbf{WasteManagement-2} dataset — 3,000
         manually annotated real-world images across mixed indoor and
         outdoor environments — as a public benchmark for binary waste
@@ -181,7 +166,7 @@ optimisation, leaving physical actuation integration as future work.
 
 \subsection{YOLO-Based Waste Detection}
 
-The YOLO family of detectors has proven effective for real-time
+The YOLO family of detectors~\cite{redmon2016yolo} has proven effective for real-time
 waste detection. YOLO\_EC~\cite{yolo_ec} demonstrated that
 augmentation strategies significantly improve detection of irregular
 waste objects. EcoDetect-YOLO~\cite{ecodetect} introduced a
@@ -195,7 +180,7 @@ motivating our choice of YOLO11s as the base detector.
 BiFPN, introduced in EfficientDet~\cite{tan2020efficientdet},
 applies bidirectional weighted feature fusion across pyramid levels,
 enabling richer multi-scale representations at lower computational
-cost than PANet variants. CBAM~\cite{woo2018cbam} provides channel
+cost than PANet variants~\cite{liu2018panet}. CBAM~\cite{woo2018cbam} provides channel
 and spatial attention mechanisms that have shown benefit in general
 object detection. While both components have been applied individually
 in related domains, their specific utility and interaction in binary
@@ -225,8 +210,8 @@ rank absolute performance.
 \midrule
 Sudha et al.~\cite{autoclassify2017}    & Custom (lab)        & Classification & CNN              & 2      & Proof-of-concept; no localization \\
 Koganti et al.~\cite{ssd_mobilenet2021} & Custom              & Detection      & SSD-MobileNet    & 2      & $\sim$82\% mAP; embedded-only \\
-Nafiz et al.~\cite{convowaste2023}      & Custom              & Classification & DCNN             & Multi  & $\sim$89\% acc.; single-item only \\
-Alourani et al.~\cite{iot_ai2024}       & TrashNet            & Classification & ResNet-50        & 6      & 91.4\% acc.; no bounding boxes \\
+Nafiz et al.~\cite{convowaste2023}      & Custom              & Classification & DCNN             & Multi  & 98\% acc.; single-item only \\
+Alourani et al.~\cite{iot_ai2024}       & TrashNet~\cite{thung2016trashnet} & Classification & ResNet-50 & 6 & 91.4\% acc.; no bounding boxes \\
 Fan et al.~\cite{yolo_ec}              & HPU\_WASTE           & Detection      & YOLO\_EC         & Multi  & 96.4\% mAP; no ablation study \\
 Liu et al.~\cite{ecodetect}            & Custom domestic     & Detection      & Lightweight YOLO & Multi  & $\sim$87\% mAP; accuracy--efficiency trade-off \\
 \midrule
@@ -260,7 +245,7 @@ available at: \url{https://universe.roboflow.com/minaruls-workspace-2ptiz/wastem
 Augmentation was applied exclusively to the training split via
 Roboflow v2, expanding it from 2,387 to \textbf{9,576 images}
 ($\times$4.01 factor) using horizontal flip, rotation ($\pm15°$),
-brightness/exposure jitter, and mosaic. Validation and test splits
+brightness/exposure jitter, and mosaic~\cite{bochkovskiy2020yolov4}. Validation and test splits
 retain only original unaugmented images. Dataset composition is
 summarised in Table~\ref{tab:dataset}.
 
@@ -285,7 +270,7 @@ Test       & 299    & 267    & 255    & 522    \\
 
 We adopt \textbf{YOLO11s}~\cite{yolo11} (small variant) as our
 base detector, selected through preliminary comparisons against
-YOLOv8n and YOLO11n. YOLO11s employs C3k2 blocks in the backbone, providing a
+YOLOv8n~\cite{jocher2023yolov8} and YOLO11n. YOLO11s employs C3k2 blocks in the backbone, providing a
 favourable trade-off between parameter efficiency and feature
 extraction capacity. The fused model contains 101 layers,
 9,413,574 parameters, and 21.3\,GFLOPs, with a model size of
@@ -312,7 +297,7 @@ WIoU loss.
 \subsection{Architectural Components}
 
 \textbf{BiFPN Neck.}
-Standard Feature Pyramid Networks (FPN) fuse features in a single
+Standard Feature Pyramid Networks (FPN)~\cite{lin2017fpn} fuse features in a single
 top-down direction, limiting their ability to propagate information
 across scales. We replace the standard neck with a
 \textbf{Bidirectional Feature Pyramid Network
@@ -383,7 +368,7 @@ Table~\ref{tab:training}.
 \toprule
 \textbf{Parameter}     & \textbf{Value} \\
 \midrule
-Base model             & YOLO11s (COCO pretrained) \\
+Base model             & YOLO11s (COCO pretrained~\cite{lin2014coco}) \\
 Epochs                 & 100 \\
 Batch size             & 32 \\
 Image size             & $640 \times 640$ \\
@@ -406,9 +391,9 @@ Table~\ref{tab:final} presents the per-class evaluation of the final model
 on both the validation and held-out test sets. The model achieves
 \textbf{94.39\% mAP@0.5} on the validation set with strong per-class
 balance (Bio: 93.62\%, Non-Bio: 95.17\%), and \textbf{85.46\% mAP@0.5}
-on the test set at \textbf{4.0\,ms} inference per image. The 8.93\%
-val-to-test gap is attributed to higher test-set density (1.74 vs.\
-1.19 instances/image) and greater Bio class visual variability.
+on the test set at \textbf{4.0\,ms} inference per image. The 8.93\% val-to-test gap is attributed to higher test-set density
+(1.74 vs.\ 1.19 instances/image), increased visual diversity, and
+more complex object overlap in the test set distribution.
 
 \begin{table}[H]
 \centering
@@ -459,6 +444,7 @@ Table~\ref{tab:comparison} compares our final model against standard
 YOLO baseline variants trained under identical conditions on the
 same dataset.
 
+
 \begin{table}[H]
 \centering
 \caption{Comparison Across YOLO Variants (same dataset, 50-epoch baselines)}
@@ -467,7 +453,7 @@ same dataset.
 \toprule
 \textbf{Model} & \textbf{mAP@0.5} & \textbf{Precision} & \textbf{Recall} \\
 \midrule
-YOLOv8n                         & 0.7631 & $-$ & $-$    \\
+YOLOv8n~\cite{jocher2023yolov8}  & 0.7631 & $-$ & $-$    \\
 YOLO11n                        & 0.7566 & $-$ & 0.6646 \\
 YOLO11s                        & 0.7565 & $-$ & 0.7132 \\
 YOLO11s + Augmentation         & 0.9060 & $-$ & 0.8400 \\
@@ -481,6 +467,9 @@ YOLO11s + Augmentation         & 0.9060 & $-$ & 0.8400 \\
 Our final model outperforms all baseline variants by a substantial
 margin, demonstrating the combined benefit of augmentation, BiFPN
 feature fusion, WIoU loss, and extended training.
+Although our comparison focuses on YOLO-based baselines for consistency,
+BiFPN originates from EfficientDet architectures, and our results are
+consistent with prior findings that multi-scale fusion improves detection performance.
 
 \subsection{Ablation Study}
 
@@ -572,9 +561,11 @@ retraining.
 
 % ── Acknowledgements ────────────────────────────────────────
 \section*{Acknowledgements}
-The authors thank the Department of Computer Applications, Adamas
-University, for providing access to the NVIDIA L40S GPU infrastructure
-used in this study.
+The authors thank the Department of Computer Applications, Adamas University,
+for providing access to the NVIDIA L40S GPU infrastructure used in this study.
+The authors also express their sincere gratitude to their project guide,
+Dr. Debdutta Pal, for his valuable guidance, support, and insights
+throughout this work.
 
 % ============================================================
 %  References
@@ -617,9 +608,9 @@ Smart waste management and classification system using advanced
 PeerJ Computer Science \textbf{11}, e2777 (2025)
 
 \bibitem{systematic_review2025}
-Noor, R.M., Hijazi, M.S., Ahmedy, I., Ismail, N.M., Daud, S.:
-A systematic review of artificial intelligence-based techniques
-for solid waste management.
+Fotovvatikhah, F., Ahmedy, I., Noor, R.M., Munir, M.U.:
+A systematic review of {AI}-based techniques for automated
+waste classification.
 Sensors \textbf{25}(10), 3181 (2025)
 
 \bibitem{yolo_ec}
@@ -663,6 +654,41 @@ In: ICCV, pp.~764--773 (2017)
 Loshchilov, I., Hutter, F.:
 Decoupled weight decay regularization.
 In: ICLR (2019)
+
+\bibitem{redmon2016yolo}
+Redmon, J., Divvala, S., Girshick, R., Farhadi, A.:
+You only look once: Unified, real-time object detection.
+In: CVPR, pp.~779--788 (2016)
+
+\bibitem{lin2017fpn}
+Lin, T.Y., Doll\'{a}r, P., Girshick, R., He, K., Hariharan, B., Belongie, S.:
+Feature pyramid networks for object detection.
+In: CVPR, pp.~2117--2125 (2017)
+
+\bibitem{lin2014coco}
+Lin, T.Y., et al.:
+Microsoft {COCO}: Common objects in context.
+In: ECCV, pp.~740--755 (2014)
+
+\bibitem{bochkovskiy2020yolov4}
+Bochkovskiy, A., Wang, C.Y., Liao, H.Y.M.:
+{YOLOv4}: Optimal speed and accuracy of object detection.
+arXiv:2004.10934 (2020)
+
+\bibitem{jocher2023yolov8}
+Jocher, G., Chaurasia, A., Qiu, J.:
+Ultralytics {YOLO}.
+Ultralytics (2023)
+
+\bibitem{liu2018panet}
+Liu, S., Qi, L., Qin, H., Shi, J., Jia, J.:
+Path aggregation network for instance segmentation.
+In: CVPR, pp.~8759--8768 (2018)
+
+\bibitem{thung2016trashnet}
+Thung, G., Yang, M.:
+Classification of trash for recyclability status.
+CS229 Project Report, Stanford University (2016)
 
 \end{thebibliography}
 

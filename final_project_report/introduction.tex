@@ -88,7 +88,7 @@ Figure~\ref{fig:architecture} shows the overall architecture of the proposed sys
 This project makes the following original contributions:
 
 \begin{enumerate}
-    \item \textbf{Public Waste Detection Dataset:} A 3,000-image manually annotated dataset covering mixed indoor and outdoor waste scenarios — diverse backgrounds, partial occlusion, fresh and degraded items — expanded to 10,175 images through structured augmentation and released publicly on Roboflow Universe under CC BY 4.0.
+    \item \textbf{Public Waste Detection Dataset:} A 3,000-image manually annotated dataset covering mixed indoor and outdoor waste scenarios — diverse backgrounds, partial occlusion, fresh and degraded items — expanded to 10,175 images through structured augmentation and released publicly on Roboflow Universe as a benchmark for binary waste detection research.
     \item \textbf{Systematic Ablation Study:} An eight-step controlled experiment isolating the contribution of each architectural component — the first such study of this scope for binary waste detection, directly addressing a gap identified by recent systematic reviews.
     \item \textbf{Evidence-Based Architecture:} Empirical demonstration that data augmentation (+15.0\% mAP@0.5) dominates all architectural changes combined, and that WIoU v3 with BiFPN provides the best accuracy-complexity trade-off, while CBAM and deformable convolutions degrade performance on this task.
     \item \textbf{High-Performance Model:} Final YOLO11s + BiFPN + WIoU v3 model achieving \textbf{94.39\% mAP@0.5} on the validation set and \textbf{85.46\% mAP@0.5} on the independent held-out test set, at 4.0\,ms GPU inference latency with a 19.2\,MB model footprint.
@@ -100,7 +100,7 @@ This project makes the following original contributions:
 The remainder of this report is organised as follows:
 
 \begin{itemize}
-    \item \textbf{Chapter 2 — Literature Review:} Reviews ten existing works in waste classification, IoT-based systems, and YOLO-based detection. Identifies research gaps addressed by this project.
+    \item \textbf{Chapter 2 — Literature Review:} Reviews eight existing works in waste classification, IoT-based systems, and YOLO-based detection. Identifies research gaps addressed by this project.
     \item \textbf{Chapter 3 — Technology:} Describes all software frameworks, libraries, and hardware used in this project.
     \item \textbf{Chapter 4 — System Design:} Presents functional and non-functional requirements, system architecture, data flow, and module descriptions.
     \item \textbf{Chapter 5 — Methodology:} Details the dataset construction process, model architecture design decisions, training strategy, and evaluation metrics.

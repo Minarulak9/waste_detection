@@ -77,7 +77,7 @@ Horizontal Flip            & 50\% probability         & Waste items appear from 
 Random Rotation            & $\pm 15^{\circ}$         & Simulates tilted camera or angled waste \\
 Brightness Jitter          & $\pm 20\%$               & Handles varying illumination conditions \\
 Exposure Jitter            & $\pm 15\%$               & Simulates different camera exposure settings \\
-Mosaic                     & Enabled                  & Combines four images for multi-scale training \\
+Mosaic~\cite{bochkovskiy2020yolov4} & Enabled             & Combines four images for multi-scale training \\
 Auto-orientation           & Enabled                  & Corrects EXIF rotation metadata automatically \\
 Resize                     & $640 \times 640$ pixels  & Standard YOLO input resolution \\
 \bottomrule
@@ -105,11 +105,11 @@ The backbone's C3k2 blocks provide efficient feature extraction across five spat
 
 \subsection{Neck: Bidirectional Feature Pyramid Network (BiFPN)}
 
-The standard YOLO neck was replaced with a BiFPN configuration. The rationale for BiFPN stems from the multi-scale nature of waste objects:
+The standard YOLO neck was replaced with a BiFPN~\cite{tan2020efficientdet} configuration. The rationale for BiFPN stems from the multi-scale nature of waste objects:
 \begin{itemize}
     \item Small waste items (bottle caps, wrappers) are best detected in high-resolution P3 features.
     \item Large waste items (bags, containers) require the wider receptive field of P5 features.
-    \item Standard FPN fuses top-down only, losing fine-grained bottom-up context.
+    \item Standard FPN~\cite{lin2017fpn} fuses top-down only, losing fine-grained bottom-up context.
     \item BiFPN's bidirectional fusion allows both scales to inform each other iteratively.
 \end{itemize}
 
@@ -130,7 +130,7 @@ Predictions with IoU below the batch mean (hard, geometrically irregular boxes) 
 
 \subsection{Transfer Learning Approach}
 
-Rather than training from random initialisation, the model was initialised from COCO pretrained YOLO11s weights (\texttt{yolo11s.pt}). Transfer learning provides:
+Rather than training from random initialisation, the model was initialised from COCO~\cite{lin2014coco} pretrained YOLO11s weights (\texttt{yolo11s.pt}). Transfer learning provides:
 \begin{itemize}
     \item Faster convergence (strong feature extractors already learned)
     \item Better generalisation with limited data
@@ -139,7 +139,7 @@ Rather than training from random initialisation, the model was initialised from 
 
 \subsection{Optimiser and Learning Rate Schedule}
 
-\textbf{AdamW} (Adaptive Moment Estimation with Weight Decay) was selected as the optimiser. AdamW decouples weight decay from the gradient update, providing better regularisation than standard Adam.
+\textbf{AdamW}~\cite{loshchilov2019adamw} (Adaptive Moment Estimation with Weight Decay) was selected as the optimiser. AdamW decouples weight decay from the gradient update, providing better regularisation than standard Adam.
 
 The learning rate schedule uses \textbf{cosine annealing}: starting at $lr_0 = 0.01$, decaying smoothly to $lr_f = 0.001$ over 100 epochs. This avoids abrupt learning rate drops and allows fine-grained weight adjustment in later epochs. A 3-epoch warmup phase linearly ramps the learning rate from near-zero to $lr_0$, stabilising early training.
 
@@ -177,7 +177,7 @@ Training Time       & 3.102 hours \\
 
 The ablation study was designed to answer the question: \textit{``Which architectural component contributes most to performance improvement, and are all components necessary?''}
 
-Six configurations were trained under identical conditions (same dataset, same evaluation protocol), with components added incrementally:
+Eight configurations were trained across two phases. Steps 1--6 add components incrementally at 50 epochs; Steps 7--8 isolate the architecture-versus-training-time effect:
 
 \begin{table}[H]
 \centering
@@ -193,14 +193,15 @@ Six configurations were trained under identical conditions (same dataset, same e
 3 & YOLO11s + Augmentation & \textbf{Effect of data augmentation} \\
 4 & + CBAM + WIoU & Effect of attention + loss function \\
 5 & + BiFPN & \textbf{Effect of bidirectional feature fusion} \\
-6 & + Deformable Convolutions & Effect of spatial adaptivity \\
+6 & + Deformable Convolutions~\cite{dai2017deformable} & Effect of spatial adaptivity \\
 \midrule
-7 (Final) & YOLO11s + BiFPN + WIoU, 100 ep & \textbf{Best config at full training} \\
+7 & YOLO11s + BiFPN + WIoU (no CBAM), 50 ep & Architecture effect isolated \\
+\textbf{8 (Final)} & \textbf{YOLO11s + BiFPN + WIoU, 100 ep} & \textbf{Best config at full training} \\
 \bottomrule
 \end{tabular}}
 \end{table}
 
-Steps 1--6 all used 50 epochs for fair comparison. The final model (Step 7) used 100 epochs to validate the benefit of extended training for the best-performing configuration.
+Steps 1--7 all used 50 epochs for direct comparison. The final model (Step 8) used 100 epochs to validate the benefit of extended training for the best-performing architecture.
 
 \section{Evaluation Metrics}
 
