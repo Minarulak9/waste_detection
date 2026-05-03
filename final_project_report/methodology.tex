@@ -42,10 +42,12 @@ During the annotation process, a subset of images — particularly those sourced
 
 \textbf{How the fix was applied:} For each polygon annotation, all $x$-coordinates and all $y$-coordinates in the sequence were extracted separately. The tightest axis-aligned bounding box enclosing the polygon was then derived by computing:
 \begin{equation}
-c_x = \frac{\min(x) + \max(x)}{2}, \quad
-c_y = \frac{\min(y) + \max(y)}{2}, \quad
-w   = \max(x) - \min(x), \quad
+\begin{aligned}
+c_x &= \frac{\min(x) + \max(x)}{2}, \qquad
+c_y = \frac{\min(y) + \max(y)}{2}, \\[6pt]
+w   &= \max(x) - \min(x), \qquad\quad\;
 h   = \max(y) - \min(y)
+\end{aligned}
 \end{equation}
 All coordinates were already normalised to $[0, 1]$ by Roboflow, so the derived bounding box values are directly usable by YOLO without further scaling. This conversion is lossless in the detection sense: the resulting box is the smallest rectangle that fully contains the annotated polygon, preserving the complete object region.
 
@@ -191,7 +193,7 @@ Eight configurations were trained across two phases. Steps 1--6 add components i
 1 & YOLO11n, no augmentation & Baseline nano model \\
 2 & YOLO11s, no augmentation & Effect of model size \\
 3 & YOLO11s + Augmentation & \textbf{Effect of data augmentation} \\
-4 & + CBAM + WIoU & Effect of attention + loss function \\
+4 & + CBAM~\cite{woo2018cbam} + WIoU & Effect of attention + loss function \\
 5 & + BiFPN & \textbf{Effect of bidirectional feature fusion} \\
 6 & + Deformable Convolutions~\cite{dai2017deformable} & Effect of spatial adaptivity \\
 \midrule

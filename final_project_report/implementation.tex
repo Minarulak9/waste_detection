@@ -2,335 +2,189 @@
 
 \section{Introduction}
 
-This chapter describes the practical implementation of all project components, including environment setup, dataset preparation, model training scripts, ablation experiments, and the demo application. Code snippets illustrate key implementation details.
+This chapter describes the practical implementation of all project components — environment setup, dataset preparation, custom module integration, model training, ablation experiments, and the demo application. The focus is on the implementation decisions and the rationale behind each step, rather than exhaustive code listings.
 
 \section{Development Environment}
 
 \subsection{Server Environment (Training)}
-Training was conducted on the Adamas University AI/ML computing cluster:
-\begin{itemize}
-    \item OS: Linux (Ubuntu 20.04)
-    \item Python: 3.13.12
-    \item PyTorch: 2.12.0.dev20260331+cu128
-    \item Ultralytics: 8.4.33
-    \item CUDA: 12.8
-    \item GPU: NVIDIA L40S (45,458 MiB)
-\end{itemize}
 
-\subsection{Local Environment (Demo)}
+All model training was conducted on the Adamas University AI/ML computing cluster with the following configuration:
+
+\begin{table}[H]
+\centering
+\caption{Server Training Environment}
+\label{tab:server_env}
+\begin{tabular}{ll}
+\toprule
+\textbf{Component} & \textbf{Version / Specification} \\
+\midrule
+Operating System   & Linux (Ubuntu 20.04) \\
+Python             & 3.13.12 \\
+PyTorch            & 2.12.0 (CUDA 12.8 build) \\
+Ultralytics        & 8.4.33 \\
+CUDA               & 12.8 \\
+GPU                & NVIDIA L40S (45,458 MiB VRAM) \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+All training scripts, datasets, and model weights were stored at the secure server path:
+\begin{center}
+\texttt{/data/aicoe\_gpu/debdutta\_pal\_n2a/mca\_minarul/waste\_project/}
+\end{center}
+
+\subsection{Local Environment (Demo Application)}
+
+The demo application is designed to run on any standard laptop without specialised hardware. The required software environment is:
+
 \begin{itemize}
-    \item OS: Windows 10/11
-    \item Python: 3.10+
+    \item OS: Windows 10/11 (or any Python 3.10+ platform)
+    \item Python: 3.10 or later
     \item Required packages: \texttt{ultralytics}, \texttt{streamlit}, \texttt{opencv-python}, \texttt{pillow}
 \end{itemize}
 
 \section{Dataset Preparation}
 
-\subsection{Dataset Download}
+\subsection{Dataset Download and Configuration}
 
-After annotation and augmentation on Roboflow, the dataset was downloaded to the server in YOLOv8 format:
+After annotation and augmentation on the Roboflow platform, the WasteManagement-2 dataset was downloaded to the training server in YOLOv8 format using the Roboflow Python SDK. The download produced a structured directory with three image/label split folders and a configuration file.
 
-\begin{lstlisting}[language=Python, caption=Dataset Download Script]
-from roboflow import Roboflow
+The dataset configuration file (\texttt{data.yaml}) specifies the dataset root path, split subdirectory names, number of classes, and class labels. Its structure is:
 
-rf = Roboflow(api_key="YOUR_API_KEY")
-project = rf.workspace("minaruls-workspace-2ptiz")\
-            .project("wastemanagement-3iq6q-hl0ll")
-version = project.version(2)
-dataset = version.download("yolov8")
-\end{lstlisting}
-
-\subsection{Data Configuration File}
-
-The \texttt{data.yaml} file defines dataset paths and class names:
-
-\begin{lstlisting}[language=Python, caption=data.yaml Configuration]
+\begin{lstlisting}[caption=data.yaml — Dataset Configuration File]
 path: /data/.../wastemanagement-2
 train: train/images
 val:   valid/images
 test:  test/images
-
 nc: 2
 names:
   - Bio
   - Non Bio
 \end{lstlisting}
 
-\section{Custom Modules Implementation}
+This file is the single point of configuration that connects the dataset to the Ultralytics training pipeline. The two class names, \texttt{Bio} (class ID 0) and \texttt{Non Bio} (class ID 1), correspond directly to the biodegradable and non-biodegradable categories.
 
-\subsection{BiFPN Module}
+\subsection{Label Pre-processing}
 
-The BiFPN neck was implemented as a custom PyTorch module integrated into the Ultralytics training pipeline:
+As described in the Methodology chapter, 272 polygon-format label files were identified and converted to YOLO's standard 5-field bounding box format (\texttt{class cx cy w h}) by computing the tightest axis-aligned bounding box from each polygon's coordinate sequence. One duplicate image was also identified and removed. This label fixing step was a custom pre-processing operation applied before any training began, ensuring all annotation files were valid and consistent.
 
-\begin{lstlisting}[language=Python, caption=BiFPN Core Implementation]
-import torch
-import torch.nn as nn
+\section{Custom Module Implementation}
 
-class BiFPNLayer(nn.Module):
-    def __init__(self, channels):
-        super().__init__()
-        # Learnable fusion weights for top-down pass
-        self.w_td = nn.Parameter(torch.ones(2))
-        # Learnable fusion weights for bottom-up pass
-        self.w_bu = nn.Parameter(torch.ones(3))
-        self.eps  = 1e-4
-        # Depthwise separable convolutions
-        self.conv_p3 = nn.Sequential(
-            nn.Conv2d(channels, channels, 3, padding=1,
-                      groups=channels, bias=False),
-            nn.Conv2d(channels, channels, 1, bias=False),
-            nn.BatchNorm2d(channels), nn.ReLU(inplace=True)
-        )
-        self.conv_p4 = nn.Sequential(...)  # same structure
-        self.conv_p5 = nn.Sequential(...)
+\subsection{BiFPN Neck}
 
-    def forward(self, features):
-        p3, p4, p5 = features
-        w_td = torch.relu(self.w_td)
-        w_bu = torch.relu(self.w_bu)
+The BiFPN neck was implemented as a custom PyTorch \texttt{nn.Module} and integrated into the Ultralytics YOLO11 architecture by replacing the standard neck with the BiFPN module. The implementation follows the EfficientDet BiFPN design with two key characteristics:
 
-        # Top-down: P5 -> P4 -> P3
-        p4_td = (w_td[0]*p4 + w_td[1]*F.interpolate(p5, p4.shape[2:]))\
-                 / (w_td.sum() + self.eps)
-        p3_td = (w_td[0]*p3 + w_td[1]*F.interpolate(p4_td, p3.shape[2:]))\
-                 / (w_td.sum() + self.eps)
+\begin{itemize}
+    \item \textbf{Learnable scalar fusion weights:} Each merge node in the BiFPN graph holds a set of learnable parameters. These weights are passed through a ReLU activation to ensure non-negativity, then normalised by their sum plus a small constant ($\varepsilon = 10^{-4}$) to produce a weighted average of input feature maps. This allows the network to learn how much to weight each pyramid level's contribution.
+    \item \textbf{Two-pass bidirectional fusion:} A single BiFPN iteration performs a top-down pass (P5 $\rightarrow$ P4 $\rightarrow$ P3) followed immediately by a bottom-up pass (P3 $\rightarrow$ P4 $\rightarrow$ P5). Our configuration runs 2 such iterations, with 256 output channels at each of the three pyramid levels (P3: $80\!\times\!80$, P4: $40\!\times\!40$, P5: $20\!\times\!20$).
+\end{itemize}
 
-        # Bottom-up: P3 -> P4 -> P5
-        p4_out = (w_bu[0]*p4 + w_bu[1]*p4_td +
-                  w_bu[2]*F.max_pool2d(p3_td, 2))\
-                  / (w_bu.sum() + self.eps)
-        p5_out = (w_bu[0]*p5 + w_bu[1]*F.max_pool2d(p4_out, 2))\
-                  / (w_bu[:2].sum() + self.eps)
-        return p3_td, p4_out, p5_out
-\end{lstlisting}
+Upsampling between levels uses bilinear interpolation; downsampling uses max pooling. Each feature merge node applies a depthwise separable convolution followed by batch normalisation and ReLU activation.
 
-\subsection{WIoU Loss Integration}
+\subsection{WIoU v3 Loss}
 
-WIoU loss was integrated by patching the Ultralytics loss module:
+WIoU v3 loss was integrated by patching the Ultralytics bounding box loss module at runtime, replacing the standard IoU regression loss with the WIoU variant. The patch is applied before the model training call is executed, so the rest of the Ultralytics training pipeline requires no modification.
 
-\begin{lstlisting}[language=Python, caption=WIoU Loss Patch]
-from ultralytics.utils import loss as loss_module
-from ultralytics_custom.utils.wiou import WIoUBboxLoss
+The WIoU v3 implementation computes a per-prediction dynamic weight $\beta = (\text{IoU}_i / \overline{\text{IoU}})^4$ where $\overline{\text{IoU}}$ is the batch mean IoU. This weight is applied to the standard IoU loss value for each prediction, effectively down-weighting geometrically easy predictions and focusing gradient updates on the harder, poorly aligned bounding boxes. IoU values are clamped to $[0.01, 1.0]$ and $\beta$ to $[0.1, 10.0]$ for numerical stability during early training.
 
-# Patch standard bbox loss with WIoU variant
-loss_module.BboxLoss = WIoUBboxLoss
-print("[WIoU] Patch applied successfully")
-\end{lstlisting}
+\section{Model Training}
 
-\section{Training Implementation}
+\subsection{Final Training Run}
 
-\subsection{Final Training Script}
+The final training run that produced the best model (\texttt{best\_0944\_final\_wiou\_bifpn\_100ep.pt}) was executed using the Ultralytics \texttt{model.train()} API with the following configuration:
 
-The complete final training run (\texttt{train\_final\_best.py}) that produced the best model:
+\begin{itemize}
+    \item Base model: YOLO11s initialised from COCO pretrained weights (\texttt{yolo11s.pt})
+    \item Dataset: WasteManagement-2 (9,576 train / 300 val images)
+    \item Epochs: 100 with early stopping patience of 15 epochs
+    \item Batch size: 32 at $640\times640$ image resolution
+    \item Optimiser: AdamW with initial LR 0.01, final LR 0.001 via cosine annealing
+    \item Warmup: 3 epochs with linear LR ramp
+    \item Weight decay: 0.0005
+    \item WIoU v3 loss patch applied before training
+    \item Model checkpoints saved every 10 epochs
+    \item Training completed in \textbf{3.102 hours} on NVIDIA L40S GPU
+\end{itemize}
 
-\begin{lstlisting}[language=Python, caption=Final Training Configuration]
-import sys
-sys.path.insert(0, f'{BASE}/dual_stream_bifpn')
-
-from ultralytics import YOLO
-from ultralytics_custom.utils.wiou import WIoUBboxLoss
-from ultralytics.utils import loss as loss_module
-
-# Apply WIoU patch
-loss_module.BboxLoss = WIoUBboxLoss
-
-# Load pretrained model
-model = YOLO(f'{BASE}/dual_stream_bifpn/yolo11s.pt')
-
-# Train with final configuration
-results = model.train(
-    data          = f'{DATASET}/data.yaml',
-    epochs        = 100,
-    imgsz         = 640,
-    batch         = 32,
-    optimizer     = 'AdamW',
-    lr0           = 0.01,
-    lrf           = 0.001,
-    cos_lr        = True,
-    weight_decay  = 0.0005,
-    warmup_epochs = 3,
-    patience      = 15,
-    project       = f'{BASE}/results',
-    name          = 'final_wiou_bifpn_100ep',
-    device        = 0,
-    save_period   = 10,
-    verbose       = True,
-)
-\end{lstlisting}
+The best checkpoint was selected based on validation mAP@0.5, which peaked at \textbf{0.9439} and was saved automatically by the Ultralytics framework.
 
 \subsection{Model Evaluation}
 
-After training, the best checkpoint was evaluated separately:
-
-\begin{lstlisting}[language=Python, caption=Model Evaluation]
-model = YOLO(f'{BASE}/results/final_wiou_bifpn_100ep/weights/best.pt')
-
-metrics = model.val(
-    data   = f'{DATASET}/data.yaml',
-    imgsz  = 640,
-    device = 0,
-)
-
-print(f"mAP@0.5:      {metrics.box.map50:.4f}")
-print(f"mAP@0.5:0.95: {metrics.box.map:.4f}")
-print(f"Precision:    {metrics.box.p.mean():.4f}")
-print(f"Recall:       {metrics.box.r.mean():.4f}")
-\end{lstlisting}
+After training, the best checkpoint was evaluated separately on both the validation set and the held-out test set using the Ultralytics \texttt{model.val()} API at $640\times640$ resolution. The evaluation reports per-class precision, recall, AP@0.5, AP@0.5:0.95, and inference speed. The validation run also generates the confusion matrix, precision-recall curves, and training metric plots that are presented in the Results chapter.
 
 \section{Ablation Experiment Implementation}
 
-Each ablation step was implemented as a separate training script. Below is the implementation pattern for the BiFPN experiment (Step 5):
+The eight-step ablation study was implemented as eight separate training scripts, each corresponding to one experimental configuration. All scripts share the same dataset, image size, batch size, and optimiser settings to ensure fair comparison. The differences between scripts are:
 
-\begin{lstlisting}[language=Python, caption=BiFPN Experiment Training]
-import sys
-sys.path.insert(0, f'{BASE}/dual_stream_bifpn')
+\begin{itemize}
+    \item \textbf{Steps 1--2 (Baseline):} Standard YOLO11n and YOLO11s trained for 50 epochs without augmentation and without any custom loss or neck modification.
+    \item \textbf{Step 3 (Augmentation):} YOLO11s trained for 50 epochs on the augmented 9,576-image dataset, with no architectural modifications.
+    \item \textbf{Step 4 (CBAM + WIoU):} WIoU loss patch applied; CBAM attention module integrated into the YOLO11s backbone. 50 epochs.
+    \item \textbf{Step 5 (BiFPN + CBAM + WIoU):} BiFPN neck added on top of Step 4 configuration. 50 epochs.
+    \item \textbf{Step 6 (Deformable Conv):} Deformable convolutional layers added to the Step 5 configuration. 50 epochs.
+    \item \textbf{Step 7 (No CBAM):} CBAM removed; BiFPN + WIoU retained. 50 epochs. This step isolates the architecture effect from the training-duration effect.
+    \item \textbf{Step 8 (Final, 100 epochs):} Identical architecture to Step 7, trained for 100 epochs. This is the final production model.
+\end{itemize}
 
-from ultralytics import YOLO
-from ultralytics_custom.utils.wiou import WIoUBboxLoss
-from ultralytics.utils import loss as loss_module
-from ultralytics_custom.nn.modules.bifpn import BiFPN
+Each training run produced a named output directory containing \texttt{best.pt}, \texttt{last.pt}, \texttt{results.csv}, a confusion matrix, and precision-recall curves, enabling direct comparison across all configurations.
 
-loss_module.BboxLoss = WIoUBboxLoss
+\section{Demo Application}
 
-model = YOLO(f'{BASE}/dual_stream_bifpn/yolo11s.pt')
+\subsection{Design Overview}
 
-results = model.train(
-    data    = f'{DATASET}/data.yaml',
-    epochs  = 50,
-    imgsz   = 640,
-    batch   = 32,
-    project = f'{BASE}/results',
-    name    = 'exp_bifpn_cbam_wiou_50ep',
-    device  = 0,
-)
-\end{lstlisting}
+The demo application (\texttt{demo\_app.py}) is a single-file Streamlit web application that provides a browser-based interface for real-time waste detection using the trained model. It is designed to be fully functional on a standard laptop without any cloud infrastructure or specialised hardware.
 
-\section{Demo Application Implementation}
+\subsection{Key Implementation Features}
 
-The demo application (\texttt{demo\_app.py}) was implemented as a single-file Streamlit application. Key design goals were: clean modern dark-themed UI, useful runtime statistics (inference time, FPS, per-class percentage), and performance on low-end hardware via automatic input resizing and an optional Fast Mode (320\,px input, $\approx$4$\times$ faster on CPU). Camera enumeration uses Windows DirectShow (\texttt{cv2.CAP\_DSHOW}) for reliable integrated webcam detection.
+\textbf{Model caching:} The YOLO model is loaded once at application startup using Streamlit's \texttt{@st.cache\_resource} decorator. This ensures that the 19.2\,MB model file is read from disk only once per session, and all subsequent inference calls reuse the same in-memory model object, minimising per-request latency.
 
-\subsection{Model Loading with Caching}
+\textbf{Image upload mode:} The user selects a JPEG, PNG, or WebP image file through Streamlit's file uploader widget. The uploaded bytes are decoded into an OpenCV BGR image array, passed to the model, and the annotated result is displayed alongside a detection summary showing the count of Bio and Non-Bio items with their individual confidence scores.
 
-\begin{lstlisting}[language=Python, caption=Cached Model Loading]
-import streamlit as st
-from ultralytics import YOLO
+\textbf{Webcam mode:} A toggle activates live webcam capture using OpenCV's \texttt{VideoCapture} with Windows DirectShow backend (\texttt{cv2.CAP\_DSHOW}), which provides reliable detection of integrated and USB webcams. Frames are captured in a loop, resized if necessary, and processed by the model in near real-time.
 
-MODEL_PATH = "codebase/BEST_MODELS/best_0944_final_wiou_bifpn_100ep.pt"
+\textbf{Fast Mode:} An optional toggle reduces the inference image size from 640\,px to 320\,px, approximately halving inference time on CPU at a minor accuracy cost. This makes the application usable on low-specification hardware.
 
-@st.cache_resource
-def load_model():
-    """Load model once and cache for all requests."""
-    return YOLO(MODEL_PATH)
+\textbf{Inference timing:} Wall-clock time is measured around each \texttt{model.predict()} call and displayed to the user as milliseconds per frame, providing transparency about system performance.
 
-model = load_model()
-\end{lstlisting}
+\textbf{Confidence and IoU thresholds:} Two sidebar sliders allow the user to adjust the detection confidence threshold (default: 0.25) and NMS IoU threshold (default: 0.45) without restarting the application.
 
-\subsection{Inference Function}
+\textbf{Result download:} The annotated output image can be downloaded directly from the browser as a PNG file.
 
-The inference function measures wall-clock time around the model call to display latency in the UI. Large images are capped at 1280\,px before inference to improve responsiveness on low-end hardware without accuracy loss:
+\subsection{Colour Coding and Display}
 
-\begin{lstlisting}[language=Python, caption=Inference Function with Timing]
-import time
-
-def run_inference(img_bgr, imgsz=640):
-    # Cap very large images for faster CPU inference
-    h, w = img_bgr.shape[:2]
-    if max(h, w) > 1280:
-        scale   = 1280 / max(h, w)
-        img_bgr = cv2.resize(img_bgr,
-                             (int(w*scale), int(h*scale)))
-    t0 = time.perf_counter()
-    results    = model.predict(img_bgr,
-                               conf    = conf_thresh,
-                               iou     = iou_thresh,
-                               imgsz   = imgsz,
-                               verbose = False)
-    elapsed_ms = (time.perf_counter() - t0) * 1000
-    result     = results[0]
-    return result, result.plot(line_width=2), elapsed_ms
-\end{lstlisting}
-
-\subsection{Detection Display}
-
-\begin{lstlisting}[language=Python, caption=Detection Results Display]
-def show_detections(result):
-    boxes = result.boxes
-    names = result.names
-
-    if boxes is None or len(boxes) == 0:
-        st.info("No waste detected in this image.")
-        return
-
-    bio_count = nonbio_count = 0
-    for box in boxes:
-        label = names[int(box.cls[0])]
-        conf  = float(box.conf[0])
-        if label == "Bio":
-            bio_count += 1
-            tag = '<span style="background:#14532d;color:#86efac;
-                   padding:2px 10px;border-radius:20px;">Bio</span>'
-        else:
-            nonbio_count += 1
-            tag = '<span style="background:#7f1d1d;color:#fca5a5;
-                   padding:2px 10px;border-radius:20px;">Non Bio</span>'
-        st.markdown(f"{tag}  Confidence: {conf:.1%}",
-                    unsafe_allow_html=True)
-
-    col1, col2 = st.columns(2)
-    col1.metric("Bio (Biodegradable)", bio_count)
-    col2.metric("Non-Bio (Non-Biodegradable)", nonbio_count)
-\end{lstlisting}
+Detected bounding boxes are colour-coded: \textbf{green} for Bio (biodegradable) items and \textbf{red} for Non-Bio (non-biodegradable) items. Class labels and confidence scores are rendered above each box. A count summary below the image reports the total number of Bio and Non-Bio detections for the processed frame.
 
 \section{Project Directory Structure}
 
 The final project is organised as follows:
 
-\begin{lstlisting}[caption=Project Directory Structure]
-D:/final_project/
-|-- codebase/
-|   |-- BEST_MODELS/
-|   |   `-- best_0944_final_wiou_bifpn_100ep.pt  (19.2 MB)
-|   |-- dual_stream_bifpn/
-|   |   |-- ultralytics_custom/
-|   |   |   |-- nn/modules/bifpn.py
-|   |   |   |-- nn/modules/sobel.py
-|   |   |   `-- utils/wiou.py
-|   |   `-- train_sobel_bifpn.py
-|   |-- results/
-|   |   `-- final_wiou_bifpn_100ep/
-|   |       |-- weights/best.pt
-|   |       |-- results.csv
-|   |       |-- confusion_matrix.png
-|   |       `-- BoxPR_curve.png
-|   `-- train_final_best.py
-|-- wastemanagement-2/
-|   |-- data.yaml
-|   |-- train/images/ (9576 images)
-|   |-- valid/images/ (300 images)
-|   `-- test/images/  (299 images)
-|-- demo_app.py
-|-- run_demo.bat
-|-- docs/
-|   |-- springer_paper.tex
-|   `-- architecture_diagram.png
-`-- final_project_report/
-    |-- thesis.tex
-    `-- [chapter files]
-\end{lstlisting}
+\begin{table}[H]
+\centering
+\caption{Project Directory Structure}
+\label{tab:dir}
+\renewcommand{\arraystretch}{1.2}
+\resizebox{\textwidth}{!}{%
+\begin{tabular}{lp{7cm}}
+\toprule
+\textbf{Path} & \textbf{Contents} \\
+\midrule
+\texttt{codebase/BEST\_MODELS/}        & Final trained model (\texttt{best\_0944...pt}, 19.2 MB) \\
+\texttt{codebase/dual\_stream\_bifpn/} & Custom modules: BiFPN, WIoU, training scripts \\
+\texttt{codebase/results/}             & Per-experiment outputs: weights, CSV, plots \\
+\texttt{wastemanagement-2/}            & Dataset: 9,576 train / 300 val / 299 test images \\
+\texttt{demo\_app.py}                  & Streamlit demo application \\
+\texttt{docs/springer\_paper.tex}      & Springer LNCS format research paper \\
+\texttt{final\_project\_report/}       & Report source files (this document) \\
+\bottomrule
+\end{tabular}}
+\end{table}
 
 \section{Running the Demo Application}
 
-The demo application can be launched with a single command:
+After installing the required packages (\texttt{ultralytics}, \texttt{streamlit}, \texttt{opencv-python}, \texttt{pillow}), the application is launched with a single terminal command:
 
 \begin{lstlisting}[language=bash, caption=Launching the Demo Application]
-# Install dependencies
-pip install streamlit ultralytics opencv-python pillow
-
-# Run the application
-cd D:/final_project
 streamlit run demo_app.py
-
-# Application opens at: http://localhost:8501
 \end{lstlisting}
 
-Alternatively, double-click \texttt{run\_demo.bat} on Windows.
+The application opens automatically in the default browser at \texttt{http://localhost:8501}. On Windows, double-clicking \texttt{run\_demo.bat} performs the same action without requiring a terminal.

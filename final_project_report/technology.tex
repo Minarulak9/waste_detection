@@ -17,7 +17,7 @@ Python (version 3.13) served as the primary programming language for all compone
 
 \section{Deep Learning Framework: PyTorch}
 
-PyTorch (version 2.12.0) is an open-source deep learning framework developed by Meta AI Research. It provides the computational backbone for all model training and inference operations in this project.
+PyTorch \cite{pytorch2024} (version 2.12.0) is an open-source deep learning framework developed by Meta AI Research. It provides the computational backbone for all model training and inference operations in this project.
 
 Key features relevant to this project:
 \begin{itemize}
@@ -31,7 +31,7 @@ PyTorch was selected over TensorFlow due to its more flexible research-oriented 
 
 \section{Object Detection Framework: Ultralytics YOLO11}
 
-Ultralytics provides the production-grade implementation of the YOLO (You Only Look Once) series of object detectors. YOLO11 (version 8.4.33) is the latest generation, offering improved accuracy and efficiency over YOLOv8 and earlier variants.
+Ultralytics \cite{ultralytics2024} provides the production-grade implementation of the YOLO (You Only Look Once) series of object detectors. YOLO11 (version 8.4.33) is the latest generation, offering improved accuracy and efficiency over YOLOv8 and earlier variants.
 
 \subsection{YOLO Architecture Overview}
 
@@ -66,7 +66,7 @@ While YOLO11n and YOLO11s showed similar mAP at 50 epochs without augmentation, 
 
 \section{BiFPN: Bidirectional Feature Pyramid Network}
 
-BiFPN was introduced by Tan et al. in EfficientDet \cite{tan2020efficientdet} as an improvement over standard Feature Pyramid Networks (FPN) and PANet. Standard FPN fuses features in a single top-down direction, while BiFPN performs bidirectional (top-down and bottom-up) weighted fusion, allowing richer information flow across scales.
+BiFPN was introduced by Tan et al. in EfficientDet \cite{tan2020efficientdet} as an improvement over standard Feature Pyramid Networks (FPN) and PANet \cite{liu2018panet}. Standard FPN fuses features in a single top-down direction, while BiFPN performs bidirectional (top-down and bottom-up) weighted fusion, allowing richer information flow across scales.
 
 The weighted fusion formula is:
 \begin{equation}
@@ -83,7 +83,7 @@ Standard IoU loss treats all predictions with equal gradient importance. WIoU mo
 
 \section{Dataset Annotation and Augmentation: Roboflow}
 
-Roboflow is a cloud-based computer vision data management platform used in this project as an annotation and augmentation tool.
+Roboflow \cite{roboflow2024} is a cloud-based computer vision data management platform used in this project as an annotation and augmentation tool.
 
 \begin{itemize}
     \item \textbf{Annotation:} The team used Roboflow's web-based annotation interface to draw bounding boxes around waste items in all 3,000 collected images. Annotations were exported in YOLOv8 format (normalised bounding box coordinates).
@@ -98,7 +98,7 @@ OpenCV (Open Source Computer Vision Library) is used in the demo application for
 
 \section{Demo Application Framework: Streamlit}
 
-Streamlit is an open-source Python framework for building interactive web applications with minimal code. It was selected for the demo application because:
+Streamlit \cite{streamlit2024} is an open-source Python framework for building interactive web applications with minimal code. It was selected for the demo application because:
 \begin{itemize}
     \item \textbf{Rapid development:} A complete interactive web UI can be built in a single Python script.
     \item \textbf{No frontend expertise required:} All UI components (sliders, file uploaders, image displays) are Python functions.
