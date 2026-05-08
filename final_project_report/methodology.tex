@@ -8,12 +8,12 @@ This chapter details the end-to-end methodology followed in the development of t
 
 \subsection{Image Collection}
 
-The dataset was built from scratch by the project team. A total of \textbf{3,000 raw images} were collected through two complementary methods:
+The dataset was built from scratch by the team. A total of \textbf{3,000 raw images} were collected through two methods:
 
 \begin{enumerate}
-    \item \textbf{Direct Photography (approximately 40\%):} Team members photographed real waste items in diverse settings — kitchen waste bins, outdoor rubbish points, laboratory disposal areas, and institutional canteen waste zones. Images were captured using mobile phone cameras under varying lighting conditions (natural daylight, indoor fluorescent, low-light) and angles (overhead, side-on, close-up).
+    \item \textbf{Direct Photography (approximately 40\%):} Team members photographed real waste items in diverse settings — kitchen waste bins, outdoor rubbish points, laboratory disposal areas, and institutional canteen waste zones.Images were captured using mobile cameras under different lighting conditions (natural daylight, indoor fluorescent,low-light) and angles(overhead,side-on, close-up).
 
-    \item \textbf{Internet Collection (approximately 60\%):} Additional images were sourced from open image repositories to expand diversity of waste item types, backgrounds, and presentation styles. Images were selected to represent real-world scenarios rather than studio or isolated item photographs.
+    \item \textbf{Internet Collection (approximately 60\%):}Additional images were collected from open image repositories to expand diversity of waste item types, backgrounds, and presentation styles. Images were selected to represent real-world scenarios rather than studio or isolated item photographs.
 \end{enumerate}
 
 The collection strategy deliberately sought:
@@ -26,7 +26,7 @@ The collection strategy deliberately sought:
 
 \subsection{Data Annotation}
 
-All 3,000 images were manually annotated using the \textbf{Roboflow annotation platform}. Each annotation consists of an axis-aligned bounding box drawn tightly around each visible waste item, with the class label assigned as either \textit{Bio} or \textit{Non-Bio}.
+All 3,000 images were manually annotated using the \textbf{Roboflow Annotation Platform}.Each annotation consists of an axis-aligned bounding box drawn closely around the each visible waste item,with the class label assigned as either \textit{Bio} or \textit{Non-Bio}.
 
 Annotation quality measures applied:
 \begin{itemize}
@@ -143,7 +143,7 @@ Rather than training from random initialisation, the model was initialised from 
 
 \textbf{AdamW}~\cite{loshchilov2019adamw} (Adaptive Moment Estimation with Weight Decay) was selected as the optimiser. AdamW decouples weight decay from the gradient update, providing better regularisation than standard Adam.
 
-The learning rate schedule uses \textbf{cosine annealing}: starting at $lr_0 = 0.01$, decaying smoothly to $lr_f = 0.001$ over 100 epochs. This avoids abrupt learning rate drops and allows fine-grained weight adjustment in later epochs. A 3-epoch warmup phase linearly ramps the learning rate from near-zero to $lr_0$, stabilising early training.
+The learning rate schedule uses \textbf{cosine annealing}:It starts at $lr_0 = 0.01$,it slowly goes down to $lr_f = 0.001$ over 100 epochs. This avoids abrupt learning rate drops and allows fine-grained weight adjustment in later epochs. A 3-epoch warmup phase linearly ramps the learning rate from near-zero to $lr_0$, stabilising early training.
 
 \subsection{Final Training Configuration}
 
@@ -219,10 +219,10 @@ Fraction of detections that are correct. High precision means few false alarms.
 \begin{equation}
 R = \frac{TP}{TP + FN}
 \end{equation}
-Fraction of ground-truth instances detected. High recall means few missed detections.
+Fraction of ground-truth instances detected. High recall means some missed detections.
 
 \subsection{Average Precision (AP)}
-The area under the Precision-Recall curve for a single class, computed across confidence thresholds from 0 to 1.
+This is the area under the curve that shows how precise the Precision-Recall is for one class. It is calculated by looking at all the confidence thresholds, which go from 0 to 1.
 
 \subsection{Mean Average Precision}
 \begin{equation}
@@ -231,7 +231,11 @@ The area under the Precision-Recall curve for a single class, computed across co
 Mean AP across all $C$ classes at IoU threshold 0.5. This is the primary evaluation metric.
 
 \subsection{mAP@0.5:0.95}
-Mean AP averaged over IoU thresholds from 0.50 to 0.95 at step 0.05, providing a stricter evaluation of localisation quality.
+Mean Average Precision is calculated over IoU levels from 0.50, to 0.95 with a step of 0.05. This gives a test of how well the localisation is done.
+
+The IoU thresholds are used to check the localisation quality.
+
+Mean AP is averaged over these thresholds.
 
 \subsection{Inference Speed}
 Average time in milliseconds to process one image through the complete pipeline (preprocessing + inference + postprocessing). Measured on the NVIDIA L40S GPU.

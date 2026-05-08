@@ -38,8 +38,8 @@ All training scripts, datasets, and model weights were stored at the secure serv
 The demo application is designed to run on any standard laptop without specialised hardware. The required software environment is:
 
 \begin{itemize}
-    \item OS: Windows 10/11 (or any Python 3.10+ platform)
-    \item Python: 3.10 or later
+    \item OS:Windows 10/11(or any Python 3.10+ platform)
+    \item Python:3.10 or a later version
     \item Required packages: \texttt{ultralytics}, \texttt{streamlit}, \texttt{opencv-python}, \texttt{pillow}
 \end{itemize}
 
@@ -62,7 +62,7 @@ names:
   - Non Bio
 \end{lstlisting}
 
-This file is the single point of configuration that connects the dataset to the Ultralytics training pipeline. The two class names, \texttt{Bio} (class ID 0) and \texttt{Non Bio} (class ID 1), correspond directly to the biodegradable and non-biodegradable categories.
+This file is the single point of configuration that connects the dataset to the Ultralytics training pipeline. The two class names are \texttt{Bio} (class ID 0)and \texttt{Non Bio}(class ID 1), matches to the biodegradable and non-biodegradable categories.
 
 \subsection{Label Pre-processing}
 
@@ -95,7 +95,7 @@ The final training run that produced the best model (\texttt{best\_0944\_final\_
 
 \begin{itemize}
     \item Base model: YOLO11s initialised from COCO pretrained weights (\texttt{yolo11s.pt})
-    \item Dataset: WasteManagement-2 (9,576 train / 300 val images)
+    \item Dataset: WasteManagement- 2(9,576 train /300 val images)
     \item Epochs: 100 with early stopping patience of 15 epochs
     \item Batch size: 32 at $640\times640$ image resolution
     \item Optimiser: AdamW with initial LR 0.01, final LR 0.001 via cosine annealing
@@ -114,16 +114,16 @@ After training, the best checkpoint was evaluated separately on both the validat
 
 \section{Ablation Experiment Implementation}
 
-The eight-step ablation study was implemented as eight separate training scripts, each corresponding to one experimental configuration. All scripts share the same dataset, image size, batch size, and optimiser settings to ensure fair comparison. The differences between scripts are:
+The eight-step ablation study was implemented as eight separate training scripts, each corresponding to one experimental configuration.All scripts share the same datasets, image sizes, batch sizes and optimiser settings to ensure fair comparison. The differences between scripts are:
 
 \begin{itemize}
-    \item \textbf{Steps 1--2 (Baseline):} Standard YOLO11n and YOLO11s trained for 50 epochs without augmentation and without any custom loss or neck modification.
-    \item \textbf{Step 3 (Augmentation):} YOLO11s trained for 50 epochs on the augmented 9,576-image dataset, with no architectural modifications.
+    \item \textbf{Steps 1--2 (Baseline) :} Here Standard YOLO11n and YOLO11s trained 50 epochs without augmentation and without any custom loss or neck modification.
+    \item \textbf{Step 3 (Augmentation) :} Here YOLO11s trained 50 epochs on the augmented 9,576-image dataset, with no architectural modifications.
     \item \textbf{Step 4 (CBAM + WIoU):} WIoU loss patch applied; CBAM attention module integrated into the YOLO11s backbone. 50 epochs.
     \item \textbf{Step 5 (BiFPN + CBAM + WIoU):} BiFPN neck added on top of Step 4 configuration. 50 epochs.
-    \item \textbf{Step 6 (Deformable Conv):} Deformable convolutional layers added to the Step 5 configuration. 50 epochs.
+    \item \textbf{Step 6 (Deformable Conv) :} Here Deformable convolutional layers added to the Step 5 configuration. 50 epochs.
     \item \textbf{Step 7 (No CBAM):} CBAM removed; BiFPN + WIoU retained. 50 epochs. This step isolates the architecture effect from the training-duration effect.
-    \item \textbf{Step 8 (Final, 100 epochs):} Identical architecture to Step 7, trained for 100 epochs. This is the final production model.
+    \item \textbf{Step 8 (Final, 100 epochs):} Here Identical Architecture to Step 7, trained for 100 epochs.This is the final production model.
 \end{itemize}
 
 Each training run produced a named output directory containing \texttt{best.pt}, \texttt{last.pt}, \texttt{results.csv}, a confusion matrix, and precision-recall curves, enabling direct comparison across all configurations.
@@ -136,9 +136,9 @@ The demo application (\texttt{demo\_app.py}) is a single-file Streamlit web appl
 
 \subsection{Key Implementation Features}
 
-\textbf{Model caching:} The YOLO model is loaded once at application startup using Streamlit's \texttt{@st.cache\_resource} decorator. This ensures that the 19.2\,MB model file is read from disk only once per session, and all subsequent inference calls reuse the same in-memory model object, minimising per-request latency.
+\textbf{Model caching:} The YOLO model is loaded once at application startup using Streamlit's \texttt{@st.cache\_resource} decorator. This ensures that the 19.2\,MB model file is read from disk only once per session, and all subsequent inference calls reuse the same in-memory model object, minimising per request latency.
 
-\textbf{Image upload mode:} The user selects a JPEG, PNG, or WebP image file through Streamlit's file uploader widget. The uploaded bytes are decoded into an OpenCV BGR image array, passed to the model, and the annotated result is displayed alongside a detection summary showing the count of Bio and Non-Bio items with their individual confidence scores.
+\textbf{Image upload mode:} The user selects a JPEG, PNG or WebP image file through Streamlit's file uploader widget. The uploaded bytes are decoded into an OpenCV BGR image array, passed to the model, and the annotated result is displayed alongside a detection summary showing the count of Bio and Non-Bio items with their individual confidence scores.
 
 \textbf{Webcam mode:} A toggle activates live webcam capture using OpenCV's \texttt{VideoCapture} with Windows DirectShow backend (\texttt{cv2.CAP\_DSHOW}), which provides reliable detection of integrated and USB webcams. Frames are captured in a loop, resized if necessary, and processed by the model in near real-time.
 
@@ -146,7 +146,7 @@ The demo application (\texttt{demo\_app.py}) is a single-file Streamlit web appl
 
 \textbf{Inference timing:} Wall-clock time is measured around each \texttt{model.predict()} call and displayed to the user as milliseconds per frame, providing transparency about system performance.
 
-\textbf{Confidence and IoU thresholds:} Two sidebar sliders allow the user to adjust the detection confidence threshold (default: 0.25) and NMS IoU threshold (default: 0.45) without restarting the application.
+\textbf{Confidence and IoU thresholds:} Two sidebar sliders allow the users to adjust the detection confidence threshold (default : 0.25) and NMS IoU threshold (default : 0.45) without restarting the application.
 
 \textbf{Result download:} The annotated output image can be downloaded directly from the browser as a PNG file.
 

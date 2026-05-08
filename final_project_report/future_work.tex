@@ -2,17 +2,17 @@
 
 \section{Introduction}
 
-While the current system achieves strong results for binary waste classification, several natural extensions would enhance its capability, coverage, and real-world impact. This chapter outlines the most promising directions for future development.
+Although the current system achieves strong results for binary waste classification, several natural extensions would enhance its capability, coverage, and impact on the real-world. This chapter outlines the most promising directions for future development.
 
 \section{Multi-Category Waste Classification}
 
-The current system classifies waste into two categories (Bio / Non-Bio). Real-world waste management requires finer-grained segregation:
+The current system classifies waste into two categories (bio/non-bio). In real-world waste management systems ,it require finer-grained segregation like:
 \begin{itemize}
     \item \textbf{Paper and Cardboard} (recyclable, separate processing from plastic)
-    \item \textbf{Glass} (requires dedicated recycling stream)
+    \item \textbf{Glass} (requiring a dedicated recycling stream)
     \item \textbf{Metal} (high-value recyclable)
-    \item \textbf{Plastic} (multiple sub-types: PET, HDPE, PVC)
-    \item \textbf{Electronic Waste} (hazardous, specialised disposal)
+    \item \textbf{Plastic} (multiple sub-types like PET, HDPE, PVC)
+    \item \textbf{Electronic Waste} (hazardous, Specialised disposal)
     \item \textbf{Organic/Food Waste} (composting stream)
 \end{itemize}
 
@@ -32,9 +32,9 @@ The current system is software-only. Integration with physical bin actuation har
 
 A mobile application would make the system accessible for household and institutional use without requiring a laptop:
 \begin{itemize}
-    \item \textbf{Android/iOS app:} Camera capture $\rightarrow$ on-device inference $\rightarrow$ classification result displayed.
-    \item \textbf{Model optimisation:} Export to ONNX or TensorFlow Lite for mobile runtime, applying quantisation (INT8) to reduce model size below 5\,MB.
-    \item \textbf{Offline capability:} On-device inference ensures operation without internet connectivity.
+    \item \textbf{Android/ios app:} Camera capture $\rightarrow$ on-device inference $\rightarrow$ classification result will be displayed.
+    \item \textbf{Model Optimisation:} Export to ONNX or tensorFlow Lite for mobile runtime feature , apply quantisation (INT8) to reduce model size below 5\,MB.
+    \item \textbf{Offline capability:} on remote area ,the On-device inference ensures operation without internet connectivity.
 \end{itemize}
 
 \section{Continual Learning}
@@ -71,9 +71,9 @@ The current 9.4M parameter model, while compact, may be too large for microcontr
 
 \section{Dataset Expansion and Diversity}
 
-The current 3,000-image dataset, while sufficient for binary classification, could be expanded:
+The current 3,000 images dataset, while it sufficient for binary classification, could be expanded:
 \begin{itemize}
-    \item Increase to 10,000+ raw images for improved generalisation.
+    \item Increase to 10,000+ raw images for improved generalisation accuracy.
     \item Include nighttime and low-light images for 24-hour deployment scenarios.
     \item Add images from diverse geographic regions and cultural waste contexts.
     \item Include wet, soiled, and degraded waste items that are challenging edge cases.
@@ -85,5 +85,5 @@ For public-facing deployment, model explainability would increase user trust:
 \begin{itemize}
     \item \textbf{Grad-CAM visualisation:} Heat maps showing which image regions influenced the classification decision.
     \item \textbf{Confidence calibration:} Ensuring that reported confidence scores accurately reflect true classification probability.
-    \item \textbf{Uncertainty estimation:} Flagging low-confidence predictions for human review rather than automated action.
+    \item \textbf{Uncertainty estimation:} It is  Flagging low-confidence predictions for human review rather than automated action.
 \end{itemize}
